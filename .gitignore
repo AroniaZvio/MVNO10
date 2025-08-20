@@ -1,0 +1,25 @@
+# node
+node_modules/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+
+# builds
+dist/
+build/
+.expo/
+.next/
+.out/
+coverage/
+
+# env & secrets
+.env
+*.env
+
+# prisma engines cache
+backend/node_modules/.prisma/
+
+# editor
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Тарифы — MobiLive MVNO (Грузия) · Демо</title>
+  <meta name="description" content="Современная MVNO-платформа: тестовая страница тарифов для запуска виртуального оператора в Грузии." />
+  <style>
+    :root{
+      --bg:#f6f8fb; --card:#fff; --ink:#0b1220; --muted:#5b6475; --line:#e6e9ef;
+      --primary:#17a2a6; --primary-ink:#042a2b; --accent:#0ea5e9; --success:#16a34a; --warning:#eab308;
+      --radius:18px; --shadow:0 6px 20px rgba(12,22,44,.08);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans",sans-serif}
+    a{color:var(--accent);text-decoration:none}
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:800}
+    .logo-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#67e8f9)}
+    .badge-demo{margin-left:auto;background:#111827;color:#fff;border-radius:999px;padding:6px 10px;font-size:12px}
+
+    .hero{background:var(--card);padding:22px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+    .hero h1{margin:0;font-size:26px}
+    .hero p{margin:0;color:var(--muted)}
+
+    .tabs{display:flex;gap:8px}
+    .tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer}
+    .tab.active{background:var(--primary);color:#fff;border-color:transparent}
+
+    .section{margin-top:18px}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    @media (max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:640px){.grid{grid-template-columns:1fr}}
+
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:12px}
+    .card h3{margin:0 0 4px;font-size:20px}
+    .price{display:flex;align-items:baseline;gap:8px}
+    .amount{font-size:32px;font-weight:800}
+    .period{color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--line);padding:4px 10px;font-size:12px;color:var(--muted)}
+
+    ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+    li{display:flex;gap:8px;align-items:flex-start}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:6px;flex:0 0 auto}
+
+    .cta{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer}
+    .btn.primary{background:var(--primary);color:#fff;border-color:transparent}
+    .btn.ghost{background:transparent}
+
+    .subtle{color:var(--muted);font-size:14px}
+    .addons .card{padding:16px}
+
+    footer{color:var(--muted);font-size:13px;margin:26px 0}
+    .note{background:#fff7ed;border:1px solid #fed7aa;color:#92400e;padding:10px 12px;border-radius:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo"><span class="logo-mark"></span><span>MobiLive MVNO · Georgia</span></div>
+      <span class="badge-demo">Демо страница тарифов</span>
+    </header>
+
+    <div class="hero">
+      <div>
+        <h1>Тарифы</h1>
+        <p>Современная MVNO‑платформа с полным циклом управления. Валюта: грузинский лари (₾).</p>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="prepaid" role="tab" aria-selected="true">Предоплатные</button>
+        <button class="tab" data-tab="postpaid" role="tab" aria-selected="false">Постоплатные / B2B</button>
+      </div>
+    </div>
+
+    <!-- Предоплатные -->
+    <section id="prepaid" class="section" aria-labelledby="prepaid-label">
+      <h2 id="prepaid-label" class="subtle" style="margin:6px 6px 12px">Предоплатные планы · 30 дней</h2>
+      <div class="grid">
+        <article class="card">
+          <div class="pill">Старт</div>
+          <h3>Starter</h3>
+          <div class="price"><span class="amount">₾10</span><span class="period">/30 дней</span></div>
+          <ul>
+            <li><span class="dot"></span><span>5 GB LTE/5G</span></li>
+            <li><span class="dot"></span><span>200 мин по Грузии</span></li>
+            <li><span class="dot"></span><span>100 SMS</span></li>
+            <li><span class="dot"></span><span>eSIM бесплатно</span></li>
+          </ul>
+          <div class="cta">
+            <button class="btn primary">Купить</button>
+            <button class="btn ghost">Подробнее</button>
+          </div>
+        </article>
+        <article class="card">
+          <div class="pill">Хит</div>
+          <h3>Smart</h3>
+          <div class="price"><span class="amount">₾25</span><span class="period">/30 дней</span></div>
+          <ul>
+            <li><span class="dot"></span><span>25 GB LTE/5G</span></li>
+            <li><span class="dot"></span><span>800 мин по Грузии</span></li>
+            <li><span class="dot"></span><span>300 SMS</span></li>
+            <li><span class="dot"></span><span>Тетеринг и VoLTE</span></li>
+          </ul>
+          <div class="cta">
+            <button class="btn primary">Купить</button>
+            <button class="btn ghost">Подробнее</button>
+          </div>
+        </article>
+        <article class="card">
+          <div class="pill">Безлимит (FUP)</div>
+          <h3>Unlimited</h3>
+          <div class="price"><span class="amount">₾45</span><span class="period">/30 дней</span></div>
+          <ul>
+            <li><span class="dot"></span><span>100 GB на полной скорости, далее 3 Mbps</span></li>
+            <li><span class="dot"></span><span>1500 мин по Грузии</span></li>
+            <li><span class="dot"></span><span>500 SMS</span></li>
+            <li><span class="dot"></span><span>Роуминг-ready*</span></li>
+          </ul>
+          <div class="cta">
+            <button class="btn primary">Купить</button>
+            <button class="btn ghost">Подробнее</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Постоплатные -->
+    <section id="postpaid" class="section" aria-labelledby="postpaid-label" hidden>
+      <h2 id="postpaid-label" class="subtle" style="margin:6px 6px 12px">Постоплатные / бизнес‑планы · помесячно</h2>
+      <div class="grid">
+        <article class="card">
+          <div class="pill">B2B</div>
+          <h3>Business S</h3>
+          <div class="price"><span class="amount">₾20</span><span class="period">/мес</span></div>
+          <ul>
+            <li><span class="dot"></span><span>10 GB LTE/5G</span></li>
+            <li><span class="dot"></span><span>300 мин по Грузии</span></li>
+            <li><span class="dot"></span><span>1 доп. SIM или eSIM</span></li>
+            <li><span class="dot"></span><span>Базовая интеграция с облачной АТС</span></li>
+          </ul>
+          <div class="cta"><button class="btn primary">Подключить</button><button class="btn ghost">Коммерческое предложение</button></div>
+        </article>
+        <article class="card">
+          <div class="pill">B2B</div>
+          <h3>Business M</h3>
+          <div class="price"><span class="amount">₾40</span><span class="period">/мес</span></div>
+          <ul>
+            <li><span class="dot"></span><span>40 GB LTE/5G</span></li>
+            <li><span class="dot"></span><span>1500 мин по Грузии</span></li>
+            <li><span class="dot"></span><span>Приоритетная поддержка</span></li>
+            <li><span class="dot"></span><span>SIP‑транк / API</span></li>
+          </ul>
+          <div class="cta"><button class="btn primary">Подключить</button><button class="btn ghost">Коммерческое предложение</button></div>
+        </article>
+        <article class="card">
+          <div class="pill">B2B</div>
+          <h3>Business L</h3>
+          <div class="price"><span class="amount">₾70</span><span class="period">/мес</span></div>
+          <ul>
+            <li><span class="dot"></span><span>100 GB + безлимит внутри сети</span></li>
+            <li><span class="dot"></span><span>3000 мин по Грузии</span></li>
+            <li><span class="dot"></span><span>Виртуальная АТС в комплекте</span></li>
+            <li><span class="dot"></span><span>Выделенный менеджер</span></li>
+          </ul>
+          <div class="cta"><button class="btn primary">Подключить</button><button class="btn ghost">Коммерческое предложение</button></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Доп. опции -->
+    <section class="section addons" aria-labelledby="addons-label">
+      <h2 id="addons-label" class="subtle" style="margin:6px 6px 12px">Опции и доплаты</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Интернет‑пакеты</h3>
+          <ul>
+            <li><span class="dot"></span><span>+5 GB — ₾5</span></li>
+            <li><span class="dot"></span><span>+15 GB — ₾12</span></li>
+            <li><span class="dot"></span><span>Ночной безлимит (01:00–07:00) — ₾6</span></li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Международные минуты</h3>
+          <ul>
+            <li><span class="dot"></span><span>100 мин в СНГ — ₾9</span></li>
+            <li><span class="dot"></span><span>100 мин в ЕС/США — ₾12</span></li>
+            <li><span class="dot"></span><span>Входящие в роуминге — от ₾0.5/мин</span></li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Номера 800 / Виртуальные</h3>
+          <ul>
+            <li><span class="dot"></span><span>Подключение: ₾10</span></li>
+            <li><span class="dot"></span><span>Абонплата: ₾20/мес</span></li>
+            <li><span class="dot"></span><span>Переадресация, IVR, запись разговоров</span></li>
+          </ul>
+        </article>
+      </div>
+      <p class="subtle" style="margin-top:10px">* Демо‑значения. Точные зоны, скорости и лимиты зависят от партнёрской сети и настроек FUP.</p>
+    </section>
+
+    <div class="section note">Внимание: это тестовая страница тарифов для демо‑размещения. Все цены, пакеты и условия — примеры.</div>
+
+    <footer>
+      © 2025 MobiLive MVNO · Georgia. Тестовые тарифы. Публичная оферта и условия обслуживания размещаются отдельно.
+    </footer>
+  </div>
+
+  <script>
+    // Простая логика вкладок
+    const tabs = document.querySelectorAll('.tab');
+    const prepaid = document.getElementById('prepaid');
+    const postpaid = document.getElementById('postpaid');
+    tabs.forEach(btn=>btn.addEventListener('click',()=>{
+      tabs.forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false')});
+      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+      const t = btn.dataset.tab;
+      if(t==='prepaid'){prepaid.hidden=false; postpaid.hidden=true}
+      else {prepaid.hidden=true; postpaid.hidden=false}
+    }));
+  </script>
+</body>
+</html>

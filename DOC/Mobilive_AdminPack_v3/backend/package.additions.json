@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "seed:admin": "tsx src/scripts/seedAdmin.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^4.17.21",
+    "tsx": "^4.15.7",
+    "typescript": "^5.5.4"
+  }
+}

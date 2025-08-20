@@ -1,0 +1,135 @@
+import { useState } from "react";
+import { api, setToken } from "../lib/api";
+import { Link, useNavigate } from "react-router-dom";
+
+export default function Login() {
+  const nav = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg("");
+    setLoading(true);
+    try {
+      const r = await api.post("/auth/login", { email, password });
+      const token = r.data.token as string;
+      const user = r.data.user;
+      localStorage.setItem("token", token);
+      setToken(token);
+      
+      // Перенаправляем админов в админ панель, обычных пользователей в dashboard
+      if (user.role === 'ADMIN') {
+        nav("/admin");
+      } else {
+        nav("/dashboard");
+      }
+    } catch (e:any) {
+      setMsg(e?.response?.data?.message || "Ошибка входа");
+    } finally {
+      setLoading(false);
+    }
+  }
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header with logo */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-block mb-6">
+            <div className="h-16 w-auto max-w-[200px] mx-auto">
+              <img 
+                src="/logo/logo.png" 
+                alt="Mobilive Logo" 
+                className="h-full w-auto object-contain"
+              />
+            </div>
+          </Link>
+          <h1 className="text-2xl font-bold text-slate-800 mb-2">Добро пожаловать!</h1>
+          <p className="text-slate-600">Войдите в свой аккаунт</p>
+        </div>
+
+        {/* Login form */}
+        <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+          <form onSubmit={onSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Email
+              </label>
+              <input 
+                type="email"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400"
+                placeholder="your@email.com"
+                value={email} 
+                onChange={e=>setEmail(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Пароль
+              </label>
+              <input 
+                type="password"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400"
+                placeholder="••••••••"
+                value={password} 
+                onChange={e=>setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full px-6 py-3 rounded-xl text-white font-semibold hover:shadow-xl disabled:opacity-50 transition-all duration-200"
+              style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`, boxShadow: '0 10px 25px rgba(10, 123, 117, 0.25)'}}
+            >
+              {loading ? "Вход..." : "🔐 Войти в аккаунт"}
+            </button>
+          </form>
+
+          {msg && (
+            <div className="mt-4 p-4 rounded-xl bg-red-50 text-red-800 border border-red-200 text-sm">
+              {msg}
+            </div>
+          )}
+
+          {/* Links */}
+          <div className="mt-6 space-y-3 text-center">
+            <p className="text-sm text-slate-600">
+              Нет аккаунта?{" "}
+              <Link to="/register" className="font-medium underline" style={{color: '#1C9C94'}} onMouseEnter={(e) => e.currentTarget.style.color = '#0A7B75'} onMouseLeave={(e) => e.currentTarget.style.color = '#1C9C94'}>
+                Зарегистрироваться
+              </Link>
+            </p>
+            
+            <p className="text-sm">
+              <Link 
+                to="/forgot-password" 
+                className="text-slate-500 underline transition-colors"
+                onMouseEnter={(e) => e.currentTarget.style.color = '#1C9C94'} 
+                onMouseLeave={(e) => e.currentTarget.style.color = ''}
+              >
+                🔑 Забыли пароль?
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Back to home */}
+        <div className="text-center mt-6">
+          <Link 
+            to="/" 
+            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          >
+            ← Вернуться на главную
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
