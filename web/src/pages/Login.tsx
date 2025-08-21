@@ -17,6 +17,14 @@ export default function Login() {
       const r = await api.post("/auth/login", { email, password });
       const token = r.data.token as string;
       const user = r.data.user;
+      
+      // Очищаем данные предыдущего пользователя при входе
+      localStorage.removeItem('userBalance');
+      localStorage.removeItem('mvno_my_numbers');
+      
+      // Для MVP тестирования: устанавливаем начальный баланс 500$ для нового пользователя
+      localStorage.setItem('userBalance', '500');
+      
       localStorage.setItem("token", token);
       setToken(token);
       

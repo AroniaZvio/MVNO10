@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { prisma } from "../../lib/prisma";
-import { requireAuth } from "../../middleware/auth";
+import { prisma } from "../lib/prisma";              // путь от src/routes/*
+import { requireAuth } from "../middleware/auth";    // путь от src/routes/*
 
-export const router = Router();
+const router = Router();
 
 /**
  * Профиль текущего пользователя
+ * GET /api/users/me
  */
 router.get("/me", requireAuth, async (req, res) => {
   try {
@@ -23,7 +24,8 @@ router.get("/me", requireAuth, async (req, res) => {
         updatedAt: true,
         firstName: true,
         lastName: true,
-        username: true
+        username: true,
+        balance: true
       }
     });
 
@@ -37,6 +39,7 @@ router.get("/me", requireAuth, async (req, res) => {
 
 /**
  * Обновление профиля
+ * PUT /api/users/me
  */
 router.put("/me", requireAuth, async (req, res) => {
   try {
@@ -60,7 +63,8 @@ router.put("/me", requireAuth, async (req, res) => {
         updatedAt: true,
         firstName: true,
         lastName: true,
-        username: true
+        username: true,
+        balance: true
       }
     });
 
@@ -73,21 +77,17 @@ router.put("/me", requireAuth, async (req, res) => {
 
 /**
  * Личный кабинет:
- * - профиль пользователя
- * - подключённые номера
- * - доступные номера
- *
- * Поддерживает разные варианты схемы:
- *  - PhoneNumber.status === 'available'
- *  - PhoneNumber.userId (null = доступен, =uid = подключён)
- *  - (если связь через таблицу-связку — не падаем, просто отдаём пустые списки)
+ * GET /api/users/me/dashboard
+ *  - профиль
+ *  - подключённые номера
+ *  - доступные номера
  */
 router.get("/me/dashboard", requireAuth, async (req, res) => {
   try {
     const uid = (req as any).user?.uid as number;
     if (!uid) return res.status(401).json({ message: "Unauthorized" });
 
-    // 1) Профиль
+    // профиль
     const me = await prisma.user.findUnique({
       where: { id: uid },
       select: {
@@ -99,27 +99,28 @@ router.get("/me/dashboard", requireAuth, async (req, res) => {
         updatedAt: true,
         firstName: true,
         lastName: true,
-        username: true
+        username: true,
+        balance: true
       }
     });
 
-    // 2) Подключённые номера
+    // подключённые номера (пытаемся двумя способами: userId и relation)
     let connectedNumbers: any[] = [];
-    // Вариант через прямую колонку userId
     try {
-      // @ts-ignore — на случай, если поля userId нет в схеме
+      // если в PhoneNumber есть колонка userId
+      // @ts-ignore
       connectedNumbers = await prisma.phoneNumber.findMany({
         where: { userId: uid },
         orderBy: { id: "asc" }
       });
     } catch {}
 
-    // Если есть relation user -> numbers (и она выведена в Prisma) — можно так:
     if (connectedNumbers.length === 0) {
+      // если в Prisma описана relation user -> numbers
       try {
         const withNumbers = await prisma.user.findUnique({
           where: { id: uid },
-          // @ts-ignore — если relation отсутствует, просто упадёт в catch
+          // @ts-ignore
           include: { numbers: true }
         });
         // @ts-ignore
@@ -127,21 +128,20 @@ router.get("/me/dashboard", requireAuth, async (req, res) => {
       } catch {}
     }
 
-    // 3) Доступные номера
+    // доступные номера (статус или userId=null)
     let availableNumbers: any[] = [];
-    // Сначала пробуем по статусу
     try {
-      // @ts-ignore — если поля status нет, пойдём в catch
+      // если есть поле status
+      // @ts-ignore
       availableNumbers = await prisma.phoneNumber.findMany({
         where: { status: "available" },
         orderBy: { id: "asc" }
       });
     } catch {}
 
-    // Если статус не используется, пробуем по userId = null
     if (availableNumbers.length === 0) {
       try {
-        // @ts-ignore — если поля userId нет, пойдём дальше
+        // @ts-ignore
         availableNumbers = await prisma.phoneNumber.findMany({
           where: { userId: null },
           orderBy: { id: "asc" }

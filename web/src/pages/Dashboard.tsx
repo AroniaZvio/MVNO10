@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, setToken } from '../lib/api';
-import PhoneNumbersSection from './dashboard/PhoneNumbersSection';
 import PhoneNumbersTable, { type PhoneNumberRow } from '../components/PhoneNumbersTable';
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
@@ -15,17 +14,108 @@ interface User {
   phoneNumber?: string;
 }
 
-
+interface DashboardData {
+  user: User;
+  connectedNumbers: any[];
+  availableNumbers: any[];
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User>({
-    id: '',
-    email: '',
-    name: '',
-    balance: 200,
-    phoneNumber: undefined
-  });
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // 🧪 MVP ТЕСТОВЫЙ РЕЖИМ
+  // Для новых пользователей баланс устанавливаем 500$ для тестирования
+  const testBalance = 500;
+  
+  // Функция для получения актуального баланса из localStorage
+  const getCurrentBalance = () => {
+    const savedBalance = localStorage.getItem('userBalance');
+    // Если баланс не установлен, значит это новый пользователь - устанавливаем 500$
+    if (savedBalance === null) {
+      return testBalance;
+    }
+    return parseInt(savedBalance, 10);
+  };
+  
+  // Функция для загрузки данных кабинета
+  const refetch = async () => {
+    try {
+      const r = await api.get("/users/me/dashboard");
+      // Устанавливаем актуальный баланс из localStorage
+      const currentBalance = getCurrentBalance();
+      const dataWithCurrentBalance = {
+        ...r.data,
+        user: {
+          ...r.data.user,
+          balance: currentBalance
+        }
+      };
+      setData(dataWithCurrentBalance);
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+      // При ошибке создаем тестовые данные с актуальным балансом
+      const currentBalance = getCurrentBalance();
+      setData({
+        user: {
+          id: '1',
+          email: 'test@example.com',
+          name: 'Тестовый пользователь',
+          balance: currentBalance
+        },
+        connectedNumbers: [],
+        availableNumbers: []
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Загружаем данные при монтировании
+  useEffect(() => {
+    // Для MVP тестирования: новые пользователи начинают с баланса 500$
+    if (!localStorage.getItem('userBalance')) {
+      localStorage.setItem('userBalance', testBalance.toString());
+    }
+    
+    refetch();
+  }, []);
+  
+  // Слушаем обновления баланса и подключенных номеров
+  useEffect(() => {
+    const handleBalanceUpdate = (event: CustomEvent) => {
+      const { newBalance, connectedNumber } = event.detail;
+      
+      // Обновляем баланс
+      setData(prev => prev ? {
+        ...prev,
+        user: { ...prev.user, balance: newBalance }
+      } : prev);
+      
+      // Если есть новый подключенный номер, добавляем его в myNumbers
+      if (connectedNumber) {
+        const now = Date.now();
+        const newNumber: MyNumber = {
+          id: connectedNumber.id,
+          mobileNumber: connectedNumber.mobileNumber,
+          countryName: connectedNumber.countryName,
+          countryCode: connectedNumber.countryCode,
+          status: 'paid',
+          reservedAt: now,
+          expiresAt: null
+        };
+        
+        setMyNumbers(prev => [...prev, newNumber]);
+        
+        // Уведомляем другие компоненты
+        window.dispatchEvent(new Event('my-numbers-updated'));
+      }
+    };
+    
+    window.addEventListener('balance-updated', handleBalanceUpdate as EventListener);
+    return () => window.removeEventListener('balance-updated', handleBalanceUpdate as EventListener);
+  }, []);
 
   function computeDisplayName(me: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string; }): string {
     const first = (me.firstName || '').trim();
@@ -36,25 +126,36 @@ const Dashboard: React.FC = () => {
     return me.email;
   }
 
-  // Загружаем данные текущего пользователя
-  useEffect(() => {
-    (async () => {
-      const token = localStorage.getItem('token') || '';
-      setToken(token);
-      try {
-        const r = await api.get('/users/me');
-        const me = r.data as unknown as Record<string, unknown>;
-        setUser(u => ({
-          ...u,
-          id: String(me.id ?? ''),
-          email: (me.email as string) ?? '',
-          name: computeDisplayName(me as { firstName?: string | null; lastName?: string | null; username?: string | null; email: string }),
-        }));
-      } catch {
-        // остаёмся в дефолтном состоянии
-      }
-    })();
-  }, []);
+  // Функция пополнения баланса
+  async function topup(amount: number) {
+    if (!data) return;
+    
+    // оптимистичное обновление
+    setData(prev => prev ? { 
+      ...prev, 
+      user: { ...prev.user, balance: (prev.user.balance ?? 0) + amount } 
+    } : prev);
+    
+    try {
+      // Для тестирования просто обновляем локально
+      // await api.post("/billing/topup", { amount });
+      // await refetch(); // подтверждение с сервера (гарантируем синхрон с БД)
+      
+      // Тестовый режим - обновляем локально и в localStorage
+      const newBalance = (data?.user.balance ?? 0) + amount;
+      localStorage.setItem('userBalance', newBalance.toString());
+      
+      setTimeout(() => {
+        setData(prev => prev ? { 
+          ...prev, 
+          user: { ...prev.user, balance: newBalance } 
+        } : prev);
+      }, 500);
+    } catch (error) {
+      console.error("Topup failed:", error);
+      // await refetch(); // откат к фактическому состоянию БД при ошибке
+    }
+  }
 
   // Состояние для выпадающих меню
   const [isServicesDropdownOpen, setIsServicesDropdownOpen] = useState(false);
@@ -80,10 +181,13 @@ const Dashboard: React.FC = () => {
     }
   }
 
-
-
   const handleLogout = () => {
-    // Логика выхода
+    // Очищаем данные пользователя при выходе
+    localStorage.removeItem('userBalance');
+    localStorage.removeItem('mvno_my_numbers');
+    localStorage.removeItem('accessToken');
+    
+    setToken(undefined);
     navigate('/');
   };
 
@@ -108,6 +212,22 @@ const Dashboard: React.FC = () => {
   function handleCancel(id: number) {
     removeMyNumber(id);
     setMyNumbers(loadMyNumbers());
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-lg text-slate-600">Загрузка…</div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-lg text-red-600">Ошибка загрузки данных</div>
+      </div>
+    );
   }
 
   return (
@@ -160,7 +280,7 @@ const Dashboard: React.FC = () => {
                         </div>
                       </Link>
                       <Link to="/esim-travel" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>🌍</div>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>📱</div>
                         <div>
                           <div className="font-medium">eSIM для путешествий</div>
                           <div className="text-xs text-slate-500">Роуминг</div>
@@ -336,7 +456,7 @@ const Dashboard: React.FC = () => {
             {/* User Menu */}
             <div className="flex items-center gap-4">
               <div className="hidden md:block text-sm text-slate-600">
-                Мой баланс: <span className="font-bold" style={{color: '#0A7B75'}}>${user.balance.toLocaleString()}</span>
+                Мой баланс: <span className="font-bold" style={{color: '#0A7B75'}}>${data.user.balance?.toLocaleString() ?? 0}</span>
               </div>
               
               <div 
@@ -346,9 +466,9 @@ const Dashboard: React.FC = () => {
               >
                 <button className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>
-                    {(user.name || user.email || 'U').charAt(0)}
+                    {(computeDisplayName(data.user) || 'U').charAt(0)}
                   </div>
-                  <span className="hidden md:block font-medium">{user.name || user.email || 'Профиль'}</span>
+                  <span className="hidden md:block font-medium">{computeDisplayName(data.user) || 'Профиль'}</span>
                   <svg className={`w-4 h-4 transition-transform duration-200 ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -369,7 +489,7 @@ const Dashboard: React.FC = () => {
                       <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-green-600 text-sm">💳</div>
                       <div>
                         <div className="font-medium">Пополнить счет</div>
-                        <div className="text-xs text-slate-500">Баланс: ${user.balance.toLocaleString()}</div>
+                        <div className="text-xs text-slate-500">Баланс: ${data.user.balance?.toLocaleString() ?? 0}</div>
                       </div>
                     </Link>
                     <hr className="my-2" />
@@ -392,23 +512,23 @@ const Dashboard: React.FC = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Phone Numbers Section */}
-        {/* Public phone numbers table on dashboard (read-only) - moved directly under header */}
-        <div className="mb-8">
+        {/* Личный кабинет - основная информация */}
+        <section className="mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold mb-4">Доступные номера</h2>
-            {publicErr && <div className="text-red-600 mb-4">{publicErr}</div>}
-            <PhoneNumbersTable
-              rows={publicNumbers}
-              readOnly={true}
-              actionLabel={'Подключить номер'}
-              onBuy={(row) => {
-                // navigate to connect page with selected number
-                navigate('/connect-number', { state: { id: row.id, mobileNumber: row.mobileNumber } });
-              }}
-            />
+            <h2 className="text-xl font-bold mb-4">Личный кабинет</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <div className="text-sm text-slate-500">Email:</div>
+                <div className="font-medium">{data.user.email}</div>
+              </div>
+              <div>
+                <div className="text-sm text-slate-500">Баланс:</div>
+                <div className="font-bold text-lg" style={{color: '#0A7B75'}}>${data.user.balance?.toLocaleString() ?? 0}</div>
           </div>
         </div>
+
+          </div>
+        </section>
 
         {/* Connected Numbers Section */}
         <div className="mb-8">
@@ -474,7 +594,31 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <PhoneNumbersSection />
+        {/* Available Numbers Section */}
+        <div className="mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 className="text-lg font-semibold mb-4">Доступные номера</h2>
+            {publicErr && <div className="text-red-600 mb-4">{publicErr}</div>}
+            <PhoneNumbersTable
+              rows={publicNumbers}
+              readOnly={true}
+              actionLabel={'Подключить номер'}
+              onBuy={(row) => {
+                // navigate to connect page with selected number
+                navigate('/connect-number', { 
+                  state: { 
+                    id: row.id, 
+                    mobileNumber: row.mobileNumber,
+                    connectionFee: row.connectionFee,
+                    monthlyFee: row.monthlyFee,
+                    countryName: row.countryName,
+                    countryCode: row.countryCode
+                  } 
+                });
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Footer */}

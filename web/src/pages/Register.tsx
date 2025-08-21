@@ -25,6 +25,15 @@ export default function Register() {
     try {
       const payload = { email: email.trim(), username: username.trim(), password } as const;
       const r = await api.post("/auth/register", payload);
+      
+      // Очищаем данные предыдущего пользователя при регистрации
+      localStorage.removeItem('userBalance');
+      localStorage.removeItem('mvno_my_numbers');
+      localStorage.removeItem('accessToken');
+      
+      // Для MVP тестирования: устанавливаем начальный баланс 500$ для нового пользователя
+      localStorage.setItem('userBalance', '500');
+      
       setMsg(r.data.message || "Мы отправили письмо для подтверждения. Проверьте почту.");
     } catch (e:any) {
       setMsg(e?.response?.data?.message || "Ошибка регистрации");

@@ -16,16 +16,18 @@ enum Role {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
   passwordHash String
-  username     String?  @unique
+  username     String?       @unique
+  balance      Int           @default(0)
+  numbers      PhoneNumber[] // подключенные номера
   firstName    String?
   lastName     String?
-  role         Role     @default(USER)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         Role          @default(USER)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   // relations
   emailVerifyTokens EmailVerifyToken[]
@@ -36,13 +38,16 @@ model PhoneNumber {
   id            Int      @id @default(autoincrement())
   countryCode   String
   countryName   String
-  mobileNumber  String
+  mobileNumber  String   @unique
   number800     String?
   category      String?
+  status        String   @default("available") // available | connected
   connectionFee Int
   monthlyFee    Int
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  User          User?    @relation(fields: [userId], references: [id])
+  userId        Int?
 }
 
 model Plan {
