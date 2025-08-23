@@ -91,8 +91,8 @@ router.post("/login", async (req, res) => {
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-  const access = jwt.sign({ uid: user.id, role: user.role }, process.env.JWT_ACCESS_SECRET!, { expiresIn: process.env.JWT_ACCESS_EXPIRES || "15m" });
-  const refresh = jwt.sign({ uid: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: process.env.JWT_REFRESH_EXPIRES || "7d" });
+  const access = jwt.sign({ uid: user.id, role: user.role }, process.env.JWT_ACCESS_SECRET!, { expiresIn: process.env.JWT_ACCESS_EXPIRES || "15m" } as any);
+  const refresh = jwt.sign({ uid: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: process.env.JWT_REFRESH_EXPIRES || "7d" } as any);
 
   return res.json({
     message: "Logged in",
@@ -107,7 +107,7 @@ router.post("/refresh", async (req, res) => {
   if (!refreshToken) return res.status(400).json({ message: "refreshToken required" });
   try {
     const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as any;
-    const access = jwt.sign({ uid: payload.uid }, process.env.JWT_ACCESS_SECRET!, { expiresIn: process.env.JWT_ACCESS_EXPIRES || "15m" });
+    const access = jwt.sign({ uid: payload.uid }, process.env.JWT_ACCESS_SECRET!, { expiresIn: process.env.JWT_ACCESS_EXPIRES || "15m" } as any);
     return res.json({ token: access });
   } catch {
     return res.status(401).json({ message: "Invalid refreshToken" });

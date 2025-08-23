@@ -32,6 +32,7 @@ model User {
   // relations
   emailVerifyTokens EmailVerifyToken[]
   resetTokens       ResetToken[]
+  subscriptions     Subscription[]
 }
 
 model PhoneNumber {
@@ -60,6 +61,7 @@ model Plan {
   sms         Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  subscriptions Subscription[]
 }
 
 // Email verification tokens
@@ -82,4 +84,18 @@ model ResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+// User subscriptions to plans
+model Subscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  planId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  status    String   @default("active") // active | cancelled | expired
+  startDate DateTime @default(now())
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
