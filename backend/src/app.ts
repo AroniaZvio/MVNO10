@@ -8,6 +8,14 @@ export const app = express();
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
+// Root route for Render health check
+app.get("/", (_req, res) => res.json({ 
+  message: "Mobilive API Server", 
+  status: "running", 
+  timestamp: new Date().toISOString(),
+  version: "1.0.0"
+}));
+
 // Enhanced CORS configuration for mobile development
 app.use(cors({ 
   origin: [
@@ -36,4 +44,28 @@ app.use("/api", (req, res, next) => {
   next();
 }, apiRouter);
 
-app.use((_req, res) => res.status(404).json({ message: "Not found" }));
+// Log all requests for debugging
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`🔍 [${timestamp}] ${req.method} ${req.path} - User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
+  next();
+});
+
+app.use((req, res) => {
+  console.log(`❌ [${new Date().toISOString()}] 404 Not Found: ${req.method} ${req.path}`);
+  res.status(404).json({ 
+    message: "Not found", 
+    path: req.path,
+    method: req.method,
+    timestamp: new Date().toISOString(),
+    availableRoutes: [
+      "GET /",
+      "GET /health", 
+      "GET /api/auth/*",
+      "GET /api/users/*",
+      "GET /api/plans/*",
+      "GET /api/billing/*",
+      "GET /api/phone-numbers/*"
+    ]
+  });
+});
