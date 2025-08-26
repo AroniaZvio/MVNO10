@@ -198,7 +198,7 @@ router.get("/transactions", requireAuth, async (req, res) => {
     const uid = (req as any).user?.uid as number;
     if (!uid) return res.status(401).json({ message: "Unauthorized" });
 
-    const { page = 1, limit = 20 } = req.query as { page?: string; limit?: string };
+    const { page = "1", limit = "20" } = req.query as { page?: string; limit?: string };
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 20;
     const offset = (pageNum - 1) * limitNum;
