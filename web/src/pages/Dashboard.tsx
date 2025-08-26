@@ -1,72 +1,93 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { api, setToken } from '../lib/api';
-import PhoneNumbersTable, { type PhoneNumberRow } from '../components/PhoneNumbersTable';
-
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
-import { loadMyNumbers, markPaidMyNumber, removeMyNumber, type MyNumber } from '../lib/myNumber';
+import { Link } from 'react-router-dom';
+import { userApi } from '../lib/api';
+import DashboardNavigation from '../components/DashboardNavigation';
+import { useConnectedPlan } from '../hooks/usePlans';
+import VirtualPhone from '../components/VirtualPhone';
 
 interface User {
   id: string;
   email: string;
-  name: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  username?: string | null;
   balance: number;
-  phoneNumber?: string;
 }
 
 interface DashboardData {
   user: User;
-  connectedNumbers: any[];
-  availableNumbers: any[];
+  connectedNumbers: Array<{
+    id: string;
+    mobileNumber?: string;
+    number800?: string;
+    countryName?: string;
+    countryCode?: string;
+    isActive?: boolean;
+  }>;
 }
 
 const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
+
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // 🧪 MVP ТЕСТОВЫЙ РЕЖИМ
-  // Для новых пользователей баланс устанавливаем 500$ для тестирования
-  const testBalance = 500;
-  
-  // Функция для получения актуального баланса из localStorage
-  const getCurrentBalance = () => {
-    const savedBalance = localStorage.getItem('userBalance');
-    // Если баланс не установлен, значит это новый пользователь - устанавливаем 500$
-    if (savedBalance === null) {
-      return testBalance;
-    }
-    return parseInt(savedBalance, 10);
-  };
+  const [_activeNumberId, setActiveNumberId] = useState<string | null>(null);
+  const [showVirtualPhone, setShowVirtualPhone] = useState(false);
+  const { connectedPlan, reload: reloadPlan } = useConnectedPlan();
   
   // Функция для загрузки данных кабинета
   const refetch = async () => {
     try {
-      const r = await api.get("/users/me/dashboard");
-      // Устанавливаем актуальный баланс из localStorage
-      const currentBalance = getCurrentBalance();
+      const dashboardData = await userApi.getDashboard();
+      
+      // Use balance from dashboard response instead of separate API call
       const dataWithCurrentBalance = {
-        ...r.data,
+        ...dashboardData,
         user: {
-          ...r.data.user,
-          balance: currentBalance
-        }
+          ...dashboardData.user,
+          // balance is now included in dashboard response
+        },
+        connectedNumbers: dashboardData.connectedNumbers.map((num: any, index: number) => ({
+          ...num,
+          isActive: index === 0 // Первый номер по умолчанию активен
+        }))
       };
       setData(dataWithCurrentBalance);
+      
+      // Устанавливаем первый номер как активный по умолчанию
+      if (dashboardData.connectedNumbers.length > 0) {
+        setActiveNumberId(dashboardData.connectedNumbers[0].id);
+      }
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
-      // При ошибке создаем тестовые данные с актуальным балансом
-      const currentBalance = getCurrentBalance();
+      // При ошибке создаем тестовые данные
       setData({
         user: {
           id: '1',
           email: 'test@example.com',
-          name: 'Тестовый пользователь',
-          balance: currentBalance
+          firstName: 'Тестовый',
+          lastName: 'пользователь',
+          balance: 0
         },
-        connectedNumbers: [],
-        availableNumbers: []
+        connectedNumbers: [
+          {
+            id: '1',
+            mobileNumber: '+7 (999) 123-45-67',
+            countryName: 'Россия',
+            countryCode: 'RU',
+            isActive: true
+          },
+          {
+            id: '2',
+            number800: '8-800-555-35-35',
+            countryName: 'Россия',
+            countryCode: 'RU',
+            isActive: false
+          }
+        ]
       });
+      
+      // Устанавливаем первый тестовый номер как активный
+      setActiveNumberId('1');
     } finally {
       setLoading(false);
     }
@@ -74,18 +95,13 @@ const Dashboard: React.FC = () => {
 
   // Загружаем данные при монтировании
   useEffect(() => {
-    // Для MVP тестирования: новые пользователи начинают с баланса 500$
-    if (!localStorage.getItem('userBalance')) {
-      localStorage.setItem('userBalance', testBalance.toString());
-    }
-    
     refetch();
   }, []);
   
-  // Слушаем обновления баланса и подключенных номеров
+  // Слушаем обновления баланса
   useEffect(() => {
     const handleBalanceUpdate = (event: CustomEvent) => {
-      const { newBalance, connectedNumber } = event.detail;
+      const { newBalance } = event.detail;
       
       // Обновляем баланс
       setData(prev => prev ? {
@@ -93,29 +109,24 @@ const Dashboard: React.FC = () => {
         user: { ...prev.user, balance: newBalance }
       } : prev);
       
-      // Если есть новый подключенный номер, добавляем его в myNumbers
-      if (connectedNumber) {
-        const now = Date.now();
-        const newNumber: MyNumber = {
-          id: connectedNumber.id,
-          mobileNumber: connectedNumber.mobileNumber,
-          countryName: connectedNumber.countryName,
-          countryCode: connectedNumber.countryCode,
-          status: 'paid',
-          reservedAt: now,
-          expiresAt: null
-        };
-        
-        setMyNumbers(prev => [...prev, newNumber]);
-        
-        // Уведомляем другие компоненты
-        window.dispatchEvent(new Event('my-numbers-updated'));
-      }
+      // Обновляем данные после покупки
+      refetch();
     };
     
     window.addEventListener('balance-updated', handleBalanceUpdate as EventListener);
     return () => window.removeEventListener('balance-updated', handleBalanceUpdate as EventListener);
   }, []);
+
+  // Слушаем обновления тарифа
+  useEffect(() => {
+    const handlePlanUpdate = () => {
+      // Обновляем данные тарифа
+      reloadPlan();
+    };
+    
+    window.addEventListener('plan-updated', handlePlanUpdate);
+    return () => window.removeEventListener('plan-updated', handlePlanUpdate);
+  }, [reloadPlan]);
 
   function computeDisplayName(me: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string; }): string {
     const first = (me.firstName || '').trim();
@@ -126,554 +137,449 @@ const Dashboard: React.FC = () => {
     return me.email;
   }
 
-  // Функция пополнения баланса
-  async function topup(amount: number) {
-    if (!data) return;
+  // Функция для изменения активного номера
+  const handleNumberActivation = (numberId: string) => {
+    setActiveNumberId(numberId);
     
-    // оптимистичное обновление
-    setData(prev => prev ? { 
-      ...prev, 
-      user: { ...prev.user, balance: (prev.user.balance ?? 0) + amount } 
+    // Обновляем состояние номеров
+    setData(prev => prev ? {
+      ...prev,
+      connectedNumbers: prev.connectedNumbers.map(num => ({
+        ...num,
+        isActive: num.id === numberId
+      }))
     } : prev);
-    
-    try {
-      // Для тестирования просто обновляем локально
-      // await api.post("/billing/topup", { amount });
-      // await refetch(); // подтверждение с сервера (гарантируем синхрон с БД)
-      
-      // Тестовый режим - обновляем локально и в localStorage
-      const newBalance = (data?.user.balance ?? 0) + amount;
-      localStorage.setItem('userBalance', newBalance.toString());
-      
-      setTimeout(() => {
-        setData(prev => prev ? { 
-          ...prev, 
-          user: { ...prev.user, balance: newBalance } 
-        } : prev);
-      }, 500);
-    } catch (error) {
-      console.error("Topup failed:", error);
-      // await refetch(); // откат к фактическому состоянию БД при ошибке
-    }
-  }
-
-  // Состояние для выпадающих меню
-  const [isServicesDropdownOpen, setIsServicesDropdownOpen] = useState(false);
-  const [isSettingsDropdownOpen, setIsSettingsDropdownOpen] = useState(false);
-  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
-  const [isPbxDropdownOpen, setIsPbxDropdownOpen] = useState(false);
-  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  
-  // Мои номера (оплаченные и забронированные)
-  const [myNumbers, setMyNumbers] = useState<MyNumber[]>(loadMyNumbers());
-  const [publicNumbers, setPublicNumbers] = useState<PhoneNumberRow[]>([]);
-  const [publicErr, setPublicErr] = useState<string | null>(null);
-
-  async function loadPublicNumbers() {
-    try {
-      const r = await fetch(`${API}/api/phone-numbers/public`);
-      if (!r.ok) throw new Error('Не удалось получить список номеров');
-      setPublicNumbers(await r.json());
-      setPublicErr(null);
-    } catch (e: unknown) {
-      const err = e as { message?: string } | undefined;
-      setPublicErr(err?.message ?? String(e ?? 'Не удалось получить список номеров'));
-    }
-  }
-
-  const handleLogout = () => {
-    // Очищаем данные пользователя при выходе
-    localStorage.removeItem('userBalance');
-    localStorage.removeItem('mvno_my_numbers');
-    localStorage.removeItem('accessToken');
-    
-    setToken(undefined);
-    navigate('/');
   };
-
-  // Подписываемся на изменения подключённых номеров (локально)
-  useEffect(() => {
-    const refresh = () => setMyNumbers(loadMyNumbers());
-    refresh();
-    const onUpdate = () => { refresh(); };
-    window.addEventListener('my-numbers-updated', onUpdate);
-  loadPublicNumbers();
-    return () => window.removeEventListener('my-numbers-updated', onUpdate);
-  }, []);
-
-  const paidNumbers = myNumbers.filter(n => n.status === 'paid');
-  const reservedNumbers = myNumbers.filter(n => n.status === 'reserved');
-
-  function handleConnect(id: number) {
-    markPaidMyNumber(id);
-    setMyNumbers(loadMyNumbers());
-  }
-
-  function handleCancel(id: number) {
-    removeMyNumber(id);
-    setMyNumbers(loadMyNumbers());
-  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-lg text-slate-600">Загрузка…</div>
+      <div className="min-h-screen" style={{backgroundColor: '#f8fafc'}}>
+        <DashboardNavigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-12">
+            <div className="text-2xl mb-4">⏳</div>
+            <div style={{color: '#0A7B75'}}>Загрузка данных...</div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-lg text-red-600">Ошибка загрузки данных</div>
+      <div className="min-h-screen" style={{backgroundColor: '#f8fafc'}}>
+        <DashboardNavigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-12">
+            <div className="text-2xl mb-4">❌</div>
+            <div style={{color: '#0A7B75'}}>Ошибка загрузки данных</div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center gap-8">
-              {/* Logo */}
-              <Link to="/" className="flex items-center">
-                <img 
-                  src="/logo/logo.png" 
-                  alt="Mobilive" 
-                  className="h-8"
-                />
-              </Link>
-
-              {/* Navigation Menu */}
-              <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-                {/* Мои услуги */}
-                <div 
-                  className="relative"
-                  onMouseEnter={() => setIsServicesDropdownOpen(true)}
-                  onMouseLeave={() => setIsServicesDropdownOpen(false)}
-                >
-                  <button className="flex items-center gap-1 text-slate-700 hover:text-teal-600 transition-colors">
-                    Мои услуги
-                    <svg className={`w-4 h-4 transition-transform duration-200 ${isServicesDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  <div className={`absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-200 ${
-                    isServicesDropdownOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
-                  }`}>
-                    <div className="py-2">
-                      <Link to="/call-from-site" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>📞</div>
-                        <div>
-                          <div className="font-medium">Звонить с сайта</div>
-                          <div className="text-xs text-slate-500">Исходящие звонки</div>
-                        </div>
-                      </Link>
-                      <Link to="/add-number" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>📱</div>
-                        <div>
-                          <div className="font-medium">Подключить номер</div>
-                          <div className="text-xs text-slate-500">Новые номера</div>
-                        </div>
-                      </Link>
-                      <Link to="/esim-travel" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>📱</div>
-                        <div>
-                          <div className="font-medium">eSIM для путешествий</div>
-                          <div className="text-xs text-slate-500">Роуминг</div>
-                        </div>
-                      </Link>
-                      <Link to="/sms-broadcast" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>💬</div>
-                        <div>
-                          <div className="font-medium">SMS рассылка</div>
-                          <div className="text-xs text-slate-500">Массовые сообщения</div>
-                        </div>
-                      </Link>
-                      <Link to="/callback" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>↩️</div>
-                        <div>
-                          <div className="font-medium">Обратный звонок</div>
-                          <div className="text-xs text-slate-500">Входящие заявки</div>
-                        </div>
-                      </Link>
-                      <Link to="/hlr-check" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>📋</div>
-                        <div>
-                          <div className="font-medium">Актуализация контактов (HLR)</div>
-                          <div className="text-xs text-slate-500">Проверка номеров</div>
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Настройки */}
-                <div 
-                  className="relative"
-                  onMouseEnter={() => setIsSettingsDropdownOpen(true)}
-                  onMouseLeave={() => setIsSettingsDropdownOpen(false)}
-                >
-                  <button className="flex items-center gap-1 text-slate-700 hover:text-teal-600 transition-colors">
-                    Настройки
-                    <svg className={`w-4 h-4 transition-transform duration-200 ${isSettingsDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  <div className={`absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-200 ${
-                    isSettingsDropdownOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
-                  }`}>
-                    <div className="py-2">
-                      <Link to="/sip-settings" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>📡</div>
-                        <div>
-                          <div className="font-medium">Подключение по SIP</div>
-                          <div className="text-xs text-slate-500">Настройки протокола</div>
-                        </div>
-                      </Link>
-                      <Link to="/virtual-numbers" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>🔢</div>
-                        <div>
-                          <div className="font-medium">Виртуальные номера</div>
-                          <div className="text-xs text-slate-500">Управление номерами</div>
-                        </div>
-                      </Link>
-                      <Link to="/api-integrations" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>🔗</div>
-                        <div>
-                          <div className="font-medium">Интеграции и API</div>
-                          <div className="text-xs text-slate-500">Разработчикам</div>
-                        </div>
-                      </Link>
-                      <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>👤</div>
-                        <div>
-                          <div className="font-medium">Мой профиль</div>
-                          <div className="text-xs text-slate-500">Личные данные</div>
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Мой счет */}
-                <div 
-                  className="relative"
-                  onMouseEnter={() => setIsAccountDropdownOpen(true)}
-                  onMouseLeave={() => setIsAccountDropdownOpen(false)}
-                >
-                  <button className="flex items-center gap-1 text-slate-700 hover:text-teal-600 transition-colors">
-                    Мой счет
-                    <svg className={`w-4 h-4 transition-transform duration-200 ${isAccountDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  <div className={`absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-200 ${
-                    isAccountDropdownOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
-                  }`}>
-                    <div className="py-2">
-                      <Link to="/call-statistics" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>📊</div>
-                        <div>
-                          <div className="font-medium">Статистика звонков</div>
-                          <div className="text-xs text-slate-500">Отчеты и аналитика</div>
-                        </div>
-                      </Link>
-                      <Link to="/payments-expenses" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>💰</div>
-                        <div>
-                          <div className="font-medium">Пополнения и расходы</div>
-                          <div className="text-xs text-slate-500">История операций</div>
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Мой АТС */}
-                <div 
-                  className="relative"
-                  onMouseEnter={() => setIsPbxDropdownOpen(true)}
-                  onMouseLeave={() => setIsPbxDropdownOpen(false)}
-                >
-                  <button className="flex items-center gap-1 text-slate-700 hover:text-teal-600 transition-colors">
-                    Мой АТС
-                    <svg className={`w-4 h-4 transition-transform duration-200 ${isPbxDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  <div className={`absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-200 ${
-                    isPbxDropdownOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
-                  }`}>
-                    <div className="py-2">
-                      <Link to="/internal-numbers" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>🏢</div>
-                        <div>
-                          <div className="font-medium">Внутренние номера</div>
-                          <div className="text-xs text-slate-500">Корпоративная телефония</div>
-                        </div>
-                      </Link>
-                      <Link to="/pbx-features" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>🎙️</div>
-                        <div>
-                          <div className="font-medium">Запись, распознавание речи, переадресация</div>
-                          <div className="text-xs text-slate-500">Дополнительные функции</div>
-                        </div>
-                      </Link>
-                      <Link to="/call-history" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>📞</div>
-                        <div>
-                          <div className="font-medium">История звонков</div>
-                          <div className="text-xs text-slate-500">Детализация</div>
-                        </div>
-                      </Link>
-                      <Link to="/external-lines" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>📡</div>
-                        <div>
-                          <div className="font-medium">Внешние линии</div>
-                          <div className="text-xs text-slate-500">Подключения</div>
-                        </div>
-                      </Link>
-                      <Link to="/pbx-statistics" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm" style={{background: `linear-gradient(to right, #1C9C94, #0A7B75)`}}>📈</div>
-                        <div>
-                          <div className="font-medium">Статистика</div>
-                          <div className="text-xs text-slate-500">Аналитика АТС</div>
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </nav>
-            </div>
-
-            {/* User Menu */}
-            <div className="flex items-center gap-4">
-              <div className="hidden md:block text-sm text-slate-600">
-                Мой баланс: <span className="font-bold" style={{color: '#0A7B75'}}>${data.user.balance?.toLocaleString() ?? 0}</span>
-              </div>
-              
-              <div 
-                className="relative"
-                onMouseEnter={() => setIsUserDropdownOpen(true)}
-                onMouseLeave={() => setIsUserDropdownOpen(false)}
-              >
-                <button className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>
-                    {(computeDisplayName(data.user) || 'U').charAt(0)}
-                  </div>
-                  <span className="hidden md:block font-medium">{computeDisplayName(data.user) || 'Профиль'}</span>
-                  <svg className={`w-4 h-4 transition-transform duration-200 ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                
-                <div className={`absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-200 ${
-                  isUserDropdownOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
-                }`}>
-                  <div className="py-2">
-                    <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-50 transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-sm">👤</div>
-                      <div>
-                        <div className="font-medium">Мой профиль</div>
-                        <div className="text-xs text-slate-500">Настройки аккаунта</div>
-                      </div>
-                    </Link>
-                    <Link to="/topup" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-50 transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-green-600 text-sm">💳</div>
-                      <div>
-                        <div className="font-medium">Пополнить счет</div>
-                        <div className="text-xs text-slate-500">Баланс: ${data.user.balance?.toLocaleString() ?? 0}</div>
-                      </div>
-                    </Link>
-                    <hr className="my-2" />
-                    <button 
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-red-50 hover:text-red-600 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600 text-sm">🚪</div>
-                      <div>
-                        <div className="font-medium">Выйти из системы</div>
-                        <div className="text-xs text-slate-500">Завершить сеанс</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen" style={{backgroundColor: '#f8fafc'}}>
+      <DashboardNavigation />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Личный кабинет - основная информация */}
-        <section className="mb-8">
+        {/* Заголовок */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold" style={{color: '#0A7B75'}}>Добро пожаловать!</h1>
+          <p className="text-slate-600 mt-2">Обзор вашего аккаунта и быстрый доступ к функциям</p>
+        </div>
+
+        {/* Основная информация */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Профиль */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-xl font-bold mb-4">Личный кабинет</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <div className="text-sm text-slate-500">Email:</div>
-                <div className="font-medium">{data.user.email}</div>
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2">👤</div>
+              <h3 className="text-lg font-semibold" style={{color: '#0A7B75'}}>Профиль</h3>
+            </div>
+            <div className="text-center mb-4">
+              <div className="font-medium text-slate-900 mb-1">
+                {computeDisplayName(data.user)}
               </div>
-              <div>
-                <div className="text-sm text-slate-500">Баланс:</div>
-                <div className="font-bold text-lg" style={{color: '#0A7B75'}}>${data.user.balance?.toLocaleString() ?? 0}</div>
+              <div className="text-sm text-slate-500">{data.user.email}</div>
+            </div>
+            <Link
+              to="/dashboard/profile"
+              className="block w-full text-center px-4 py-2 text-white font-medium rounded-lg transition-colors"
+              style={{backgroundColor: '#0A7B75'}}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
+            >
+              Управлять профилем
+            </Link>
+          </div>
+
+          {/* Баланс */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2">💰</div>
+              <h3 className="text-lg font-semibold" style={{color: '#0A7B75'}}>Баланс</h3>
+            </div>
+            <div className="text-center mb-4">
+              <div className="text-2xl font-bold" style={{color: '#0A7B75'}}>
+                ${(data.user.balance / 100).toFixed(2)}
+              </div>
+              <div className="text-sm text-slate-500">Доступно средств</div>
+            </div>
+            <Link
+              to="/dashboard/profile"
+              className="block w-full text-center px-4 py-2 text-white font-medium rounded-lg transition-colors"
+              style={{backgroundColor: '#0A7B75'}}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
+            >
+              Пополнить баланс
+            </Link>
+          </div>
+
+          {/* Подключенные номера */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2">📱</div>
+              <h3 className="text-lg font-semibold" style={{color: '#0A7B75'}}>Мои номера</h3>
+            </div>
+            <div className="text-center mb-4">
+              <div className="text-2xl font-bold" style={{color: '#0A7B75'}}>
+                {data.connectedNumbers.length}
+              </div>
+              <div className="text-sm text-slate-500">Подключено номеров</div>
+            </div>
+            <Link
+              to="/dashboard/connected-numbers"
+              className="block w-full text-center px-4 py-2 text-white font-medium rounded-lg transition-colors"
+              style={{backgroundColor: '#0A7B75'}}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
+            >
+              Управлять номерами
+            </Link>
           </div>
         </div>
 
-          </div>
-        </section>
-
-        {/* Connected Numbers Section */}
-        <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="block">
+        {/* Быстрые действия */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4" style={{color: '#0A7B75'}}>Быстрые действия</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              to="/dashboard/available-numbers"
+              className="flex items-center gap-3 p-4 rounded-lg transition-colors border"
+              style={{
+                backgroundColor: '#f0f9f8',
+                borderColor: '#0A7B75',
+                color: '#0A7B75'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e0f2f1';
+                e.currentTarget.style.borderColor = '#1C9C97';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0f9f8';
+                e.currentTarget.style.borderColor = '#0A7B75';
+              }}
+            >
+              <div className="text-2xl">🔍</div>
               <div>
-                <h2 className="text-xl font-semibold text-slate-900 mb-2">Подключенные номера</h2>
-                {myNumbers.length > 0 ? (
-                  <div className="space-y-3">
-                    {/* Оплаченные */}
-                    {paidNumbers.map(n => (
-                      <div key={n.id} className="w-full grid grid-cols-[1fr_auto] items-center p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className="text-2xl font-mono font-bold" style={{color: '#0A7B75'}}>
-                            {n.mobileNumber}
-                          </div>
-                          <span className="text-sm text-slate-500">{n.countryName} {n.countryCode}</span>
-                        </div>
-                        <div className="flex items-center gap-3 justify-end">
-                          <button
-                            onClick={() => handleCancel(n.id)}
-                            className="px-4 py-2 rounded-xl font-medium border border-red-200 bg-white text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm transition-colors"
-                          >
-                            Отменить
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {/* Забронированные */}
-                    {reservedNumbers.map(n => (
-                      <div key={n.id} className="w-full grid grid-cols-[1fr_auto] items-center p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className="text-2xl font-mono font-bold" style={{color: '#0A7B75'}}>
-                            {n.mobileNumber}
-                          </div>
-                          <span className="text-sm text-slate-500">{n.countryName} {n.countryCode}</span>
-                        </div>
-                        <div className="flex items-center gap-3 justify-end">
-                          <button
-                            onClick={() => handleConnect(n.id)}
-                            className="px-4 py-2 rounded-xl text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-                            style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}
-                          >
-                            Подключить
-                          </button>
-                          <button
-                            onClick={() => handleCancel(n.id)}
-                            className="px-4 py-2 rounded-xl font-medium border border-red-200 bg-white text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm transition-colors"
-                          >
-                            Отменить
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-slate-600">Ни одного номера не подключено</div>
-                )}
+                <div className="font-medium">Найти новый номер</div>
+                <div className="text-sm opacity-80">Просмотр доступных номеров для подключения</div>
               </div>
-              
-              {/* Кнопка справа убрана по требованию */}
+            </Link>
+            
+            <Link
+                              to="/connect-plans"
+              className="flex items-center gap-3 p-4 rounded-lg transition-colors border"
+              style={{
+                backgroundColor: '#f0f9f8',
+                borderColor: '#0A7B75',
+                color: '#0A7B75'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e0f2f1';
+                e.currentTarget.style.borderColor = '#1C9C97';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0f9f8';
+                e.currentTarget.style.borderColor = '#0A7B75';
+              }}
+            >
+              <div className="text-2xl">📋</div>
+              <div>
+                <div className="font-medium">Подключить тариф</div>
+                <div className="text-sm opacity-80">Выбор и подключение тарифного плана</div>
+              </div>
+            </Link>
+
+            <Link
+              to="/ats-services"
+              className="flex items-center gap-3 p-4 rounded-lg transition-colors border"
+              style={{
+                backgroundColor: '#f0f9f8',
+                borderColor: '#0A7B75',
+                color: '#0A7B75'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e0f2f1';
+                e.currentTarget.style.borderColor = '#1C9C97';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0f9f8';
+                e.currentTarget.style.borderColor = '#0A7B75';
+              }}
+            >
+              <div className="text-2xl">🏢</div>
+              <div>
+                <div className="font-medium">Доп услуги</div>
+                <div className="text-sm opacity-80">Подключение АТС с внутренними номерами</div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Информационные блоки */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Подключенные номера */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
+            <h2 className="text-lg font-semibold mb-4" style={{color: '#0A7B75'}}>
+              Подключенные номера
+              {data.connectedNumbers.length > 0 && (
+                <span className="text-sm font-normal text-slate-500 ml-2">
+                  ({data.connectedNumbers.filter(n => n.isActive).length} активен)
+                </span>
+              )}
+            </h2>
+            <div className="flex-1">
+              {data.connectedNumbers.length > 0 ? (
+                <div className="space-y-3">
+                  {data.connectedNumbers.slice(0, 2).map(n => (
+                    <div 
+                      key={n.id} 
+                      className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                        n.isActive 
+                          ? 'bg-green-50 border-green-300 shadow-sm' 
+                          : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                      }`}
+                      onClick={() => handleNumberActivation(n.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-lg">📱</div>
+                        <div>
+                          <div className="font-medium text-sm">
+                            {n.mobileNumber || n.number800 || `Номер #${n.id}`}
+                          </div>
+                          <div className="text-xs text-slate-500">{n.countryName} {n.countryCode}</div>
+                        </div>
+                      </div>
+                      
+                      {/* Галочка активного номера */}
+                      <div className="flex items-center gap-2">
+                        {n.isActive && (
+                          <div className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">
+                            Активен
+                          </div>
+                        )}
+                        <div 
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                            n.isActive 
+                              ? 'border-green-500 bg-green-500' 
+                              : 'border-slate-300 bg-white'
+                          }`}
+                        >
+                          {n.isActive && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {data.connectedNumbers.length > 2 && (
+                    <div className="text-center pt-2">
+                      <Link
+                        to="/dashboard/connected-numbers"
+                        className="text-blue-600 hover:text-blue-800 text-xs"
+                      >
+                        +{data.connectedNumbers.length - 2} еще →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="text-2xl mb-2">📱</div>
+                  <div className="text-sm text-slate-500">Нет подключенных номеров</div>
+                </div>
+              )}
+            </div>
+            <div className="mt-auto pt-4">
+              <Link
+                to="/dashboard/connected-numbers"
+                className="block w-full text-center px-3 py-2 text-white font-medium rounded-lg transition-colors text-sm"
+                style={{backgroundColor: '#0A7B75'}}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
+              >
+                Управлять номерами
+              </Link>
             </div>
           </div>
-        </div>
 
-        {/* Available Numbers Section */}
-        <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold mb-4">Доступные номера</h2>
-            {publicErr && <div className="text-red-600 mb-4">{publicErr}</div>}
-            <PhoneNumbersTable
-              rows={publicNumbers}
-              readOnly={true}
-              actionLabel={'Подключить номер'}
-              onBuy={(row) => {
-                // navigate to connect page with selected number
-                navigate('/connect-number', { 
-                  state: { 
-                    id: row.id, 
-                    mobileNumber: row.mobileNumber,
-                    connectionFee: row.connectionFee,
-                    monthlyFee: row.monthlyFee,
-                    countryName: row.countryName,
-                    countryCode: row.countryCode
-                  } 
-                });
-              }}
-            />
+          {/* Подключенный тарифный план */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
+            <h2 className="text-lg font-semibold mb-4" style={{color: '#0A7B75'}}>Подключенный тарифный план</h2>
+            <div className="flex-1">
+              {connectedPlan ? (
+                <div className="text-center py-4">
+                  <div className="text-2xl mb-2">📋</div>
+                  <div className="text-sm text-slate-500 mb-2">{connectedPlan.planName}</div>
+                  <div className="text-xs text-slate-400 mb-3">
+                    {connectedPlan.planDataMb} MB данных, {connectedPlan.planMinutes} минут, {connectedPlan.planSms} SMS
+                  </div>
+                  <div className="text-lg font-bold" style={{color: '#0A7B75'}}>{connectedPlan.planPrice}</div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    Подключен: {new Date(connectedPlan.connectedAt).toLocaleDateString()}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="text-2xl mb-2">📋</div>
+                  <div className="text-sm text-slate-500 mb-2">Нет подключенного тарифа</div>
+                  <div className="text-xs text-slate-400 mb-3">Подключите тариф для использования услуг</div>
+                </div>
+              )}
+            </div>
+            <div className="mt-auto pt-4">
+              <Link
+                to="/connect-plans"
+                className="block w-full text-center px-3 py-2 text-white font-medium rounded-lg transition-colors text-sm"
+                style={{backgroundColor: '#0A7B75'}}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
+              >
+                {connectedPlan ? 'Изменить тариф' : 'Подключить тариф'}
+              </Link>
+            </div>
+          </div>
+
+          {/* Позвонить с сайта */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
+            <h2 className="text-lg font-semibold mb-4" style={{color: '#0A7B75'}}>Позвонить с сайта</h2>
+            <div className="flex-1">
+              {(() => {
+                const activeNumber = data.connectedNumbers.find(n => n.isActive);
+                const hasRequirements = activeNumber && connectedPlan;
+                
+                return (
+                  <div className="space-y-3">
+                    {/* Активный номер */}
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <div className="text-xs text-slate-500 mb-1">Активный номер:</div>
+                      {activeNumber ? (
+                        <div className="flex items-center gap-2">
+                          <div className="text-lg">📱</div>
+                          <div>
+                            <div className="font-medium text-sm" style={{color: '#0A7B75'}}>
+                              {activeNumber.mobileNumber || activeNumber.number800 || `Номер #${activeNumber.id}`}
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {activeNumber.countryName} {activeNumber.countryCode}
+                            </div>
+                          </div>
+                          <div className="ml-auto">
+                            <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full"></div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-slate-400">Нет активного номера</div>
+                      )}
+                    </div>
+
+                    {/* Подключенный тариф */}
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <div className="text-xs text-slate-500 mb-1">Тарифный план:</div>
+                      {connectedPlan ? (
+                        <div className="flex items-center gap-2">
+                          <div className="text-lg">📋</div>
+                          <div>
+                            <div className="font-medium text-sm" style={{color: '#0A7B75'}}>
+                              {connectedPlan.planName}
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {connectedPlan.planMinutes} мин • {connectedPlan.planDataMb} MB
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-slate-400">Нет подключенного тарифа</div>
+                      )}
+                    </div>
+
+                    {/* Статус готовности */}
+                    {hasRequirements ? (
+                      <div className="text-center py-2">
+                        <div className="text-sm text-green-600 font-medium">✓ Готов к звонку</div>
+                        <div className="text-xs text-slate-400">Все настройки подключены</div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-2">
+                        <div className="text-sm text-orange-600 font-medium">⚠ Настройка требуется</div>
+                        <div className="text-xs text-slate-400">
+                          {!activeNumber && !connectedPlan && 'Подключите номер и тариф'}
+                          {!activeNumber && connectedPlan && 'Выберите активный номер'}
+                          {activeNumber && !connectedPlan && 'Подключите тарифный план'}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="mt-auto pt-4">
+              <button
+                className="block w-full text-center px-3 py-2 text-white font-medium rounded-lg transition-colors text-sm"
+                style={{
+                  backgroundColor: data.connectedNumbers.find(n => n.isActive) && connectedPlan ? '#0A7B75' : '#9ca3af'
+                }}
+                disabled={!data.connectedNumbers.find(n => n.isActive) || !connectedPlan}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = '#1C9C97';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = '#0A7B75';
+                  }
+                }}
+                onClick={() => {
+                  const activeNumber = data.connectedNumbers.find(n => n.isActive);
+                  if (activeNumber && connectedPlan) {
+                    setShowVirtualPhone(true);
+                  }
+                }}
+              >
+                {data.connectedNumbers.find(n => n.isActive) && connectedPlan ? 'Начать звонок' : 'Настройка требуется'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Company Info */}
-            <div className="md:col-span-2">
-              <img 
-                src="/logo/logo.png" 
-                alt="Mobilive" 
-                className="h-8 mb-4 filter brightness-0 invert"
-              />
-              <h3 className="text-lg font-semibold mb-4">О компании Mobilive</h3>
-              <p className="text-slate-300 mb-4">
-                Mobilive — современная MVNO платформа, предоставляющая полный спектр телекоммуникационных услуг. 
-                Мы помогаем запускать виртуальных мобильных операторов с использованием передовых технологий.
-              </p>
-              <div className="space-y-2 text-sm text-slate-400">
-                <div>📧 Email: info@mobilive.ru</div>
-                <div>📞 Телефон: +7 (495) 123-45-67</div>
-                <div>📍 Адрес: г. Москва, ул. Технологическая, д. 10, стр. 1</div>
-                <div>🕒 Режим работы: Пн-Пт 9:00-18:00</div>
-              </div>
-            </div>
-
-            {/* Legal Info */}
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Юридическая информация</h4>
-              <div className="space-y-2 text-sm text-slate-300">
-                <div>ООО "Мобилайв"</div>
-                <div>ИНН: 7704123456</div>
-                <div>КПП: 770401001</div>
-                <div>ОГРН: 1234567890123</div>
-                <div>Лицензия: №123456 от 01.01.2020</div>
-              </div>
-            </div>
-
-            {/* Links */}
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Полезные ссылки</h4>
-              <div className="space-y-2">
-                <Link to="/support" className="block text-slate-300 hover:text-white transition-colors">Техподдержка</Link>
-                <Link to="/docs" className="block text-slate-300 hover:text-white transition-colors">Документация API</Link>
-                <Link to="/privacy" className="block text-slate-300 hover:text-white transition-colors">Политика конфиденциальности</Link>
-                <Link to="/terms" className="block text-slate-300 hover:text-white transition-colors">Пользовательское соглашение</Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-700 mt-8 pt-8 text-center text-slate-400">
-            <p>&copy; 2024 Mobilive. Все права защищены.</p>
-          </div>
-        </div>
-      </footer>
+      {/* Виртуальный телефон */}
+      {showVirtualPhone && (
+        <VirtualPhone
+          activeNumber={data?.connectedNumbers.find(n => n.isActive)?.mobileNumber || 
+                       data?.connectedNumbers.find(n => n.isActive)?.number800 || 
+                       'Неизвестный номер'}
+          userBalance={data?.user.balance || 0}
+          onClose={() => setShowVirtualPhone(false)}
+        />
+      )}
     </div>
   );
 };

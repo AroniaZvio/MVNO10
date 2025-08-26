@@ -192,8 +192,8 @@ export default function PhoneNumbersTable({ rows, readOnly = true, onDeleteClick
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{r.mobileNumber || '—'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">—</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${r.connectionFee}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${r.monthlyFee}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(r.connectionFee / 100).toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(r.monthlyFee / 100).toFixed(2)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {(() => {
                           if (r.category) {
@@ -261,8 +261,8 @@ export default function PhoneNumbersTable({ rows, readOnly = true, onDeleteClick
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <span title={`Номер 800: ${r.number800}`} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">800: {r.number800}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${r.connectionFee}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${r.monthlyFee}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(r.connectionFee / 100).toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(r.monthlyFee / 100).toFixed(2)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {(() => {
                           if (r.category) {

@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
-import { addPaidMyNumber } from '../lib/myNumber';
+import { userApi, billingApi } from '../lib/api';
 
 interface User {
   id: string;
@@ -26,6 +25,7 @@ export default function ConnectNumber() {
   };
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
 
   const id = state?.id;
   const mobileNumber = state?.mobileNumber;
@@ -36,7 +36,7 @@ export default function ConnectNumber() {
   
   // Функция для подключения номера
   const handleConfirmConnection = async () => {
-    if (!user || !connectionFee || !monthlyFee || !mobileNumber) return;
+    if (!user || !connectionFee || !monthlyFee || !mobileNumber || !id) return;
     
     const totalCost = connectionFee + monthlyFee;
     
@@ -45,80 +45,58 @@ export default function ConnectNumber() {
       return;
     }
     
-    // Списываем средства с баланса
-    const newBalance = user.balance - totalCost;
+    setProcessing(true);
     
-    // Обновляем баланс в localStorage для синхронизации между компонентами
-    localStorage.setItem('userBalance', newBalance.toString());
-    
-    // Обновляем локальное состояние
-    setUser(prev => prev ? {
-      ...prev,
-      balance: newBalance
-    } : null);
-    
-    // Создаем объект подключенного номера
-    const connectedNumber = {
-      id: Date.now(), // Временный ID для демонстрации
-      mobileNumber: mobileNumber,
-      countryName: countryName || '',
-      countryCode: countryCode || '',
-      status: 'paid' as const,
-      connectionFee: connectionFee,
-      monthlyFee: monthlyFee
-    };
-    
-    // Сохраняем номер в localStorage используя функцию из myNumber.ts
-    addPaidMyNumber({
-      id: connectedNumber.id,
-      mobileNumber: connectedNumber.mobileNumber,
-      countryName: connectedNumber.countryName,
-      countryCode: connectedNumber.countryCode
-    });
-    
-    // Отправляем событие об обновлении баланса для Dashboard
-    window.dispatchEvent(new CustomEvent('balance-updated', {
-      detail: { 
-        newBalance,
-        connectedNumber: connectedNumber
-      }
-    }));
-    
-    // Показываем уведомление об успехе
-    alert(`Номер ${mobileNumber} успешно подключен! Списано: $${totalCost.toLocaleString()}`);
-    
-    // Перенаправляем в Dashboard
-    navigate('/dashboard');
+    try {
+      // Покупаем номер через API
+      const result = await billingApi.purchaseNumber(id, connectionFee, monthlyFee);
+      
+      // Обновляем локальное состояние пользователя
+      setUser(prev => prev ? {
+        ...prev,
+        balance: result.balance
+      } : null);
+      
+      // Показываем уведомление об успехе
+      alert(`Номер ${mobileNumber} успешно подключен! Списано: $${(totalCost / 100).toFixed(2)}`);
+      
+      // Уведомляем другие компоненты об обновлении баланса
+      window.dispatchEvent(new CustomEvent('balance-updated', {
+        detail: { newBalance: result.balance }
+      }));
+      
+      // Перенаправляем в Dashboard
+      navigate('/dashboard');
+      
+    } catch (error: any) {
+      console.error('Failed to purchase number:', error);
+      const errorMessage = error.response?.data?.message || 'Ошибка при покупке номера';
+      alert(`Ошибка: ${errorMessage}`);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   // Загружаем данные пользователя
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const response = await api.get('/users/me');
-        // Устанавливаем актуальный баланс из localStorage
-        const savedBalance = localStorage.getItem('userBalance');
-        // Для MVP тестирования: новые пользователи начинают с баланса 500$
-        const currentBalance = savedBalance ? parseInt(savedBalance, 10) : 500;
+        const userData = await userApi.getProfile();
         
         setUser({
-          ...response.data,
-          balance: currentBalance
+          ...userData,
+          // balance is now included in profile response
         });
       } catch (error) {
         console.error('Failed to load user data:', error);
-        // При ошибке создаем тестовые данные с актуальным балансом
-        const savedBalance = localStorage.getItem('userBalance');
-        // Для MVP тестирования: новые пользователи начинают с баланса 500$
-        const currentBalance = savedBalance ? parseInt(savedBalance, 10) : 500;
-        
+        // При ошибке создаем тестовые данные
         setUser({
           id: '1',
           email: 'test@example.com',
           firstName: 'Тестовый',
           lastName: 'Пользователь',
           username: 'testuser',
-          balance: currentBalance
+          balance: 0
         });
       } finally {
         setLoading(false);
@@ -184,7 +162,7 @@ export default function ConnectNumber() {
             {/* User Menu */}
             <div className="flex items-center gap-4">
               <div className="hidden md:block text-sm text-slate-600">
-                Мой баланс: <span className="font-bold" style={{color: '#0A7B75'}}>${user.balance?.toLocaleString() ?? 0}</span>
+                Мой баланс: <span className="font-bold" style={{color: '#0A7B75'}}>${(user.balance / 100).toFixed(2)}</span>
               </div>
               
               {/* Логотип и профиль пользователя */}
@@ -219,7 +197,7 @@ export default function ConnectNumber() {
           {/* Block 1: Balance */}
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h3 className="text-lg font-semibold mb-3">Баланс</h3>
-            <div className="text-3xl font-bold" style={{color: '#0A7B75'}}>${user.balance?.toLocaleString() ?? 0}</div>
+            <div className="text-3xl font-bold" style={{color: '#0A7B75'}}>${(user.balance / 100).toFixed(2)}</div>
             <div className="mt-4">
               <button onClick={() => navigate('/topup')} className="px-4 py-2 rounded-xl text-white font-medium" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>Пополнить баланс</button>
             </div>
@@ -252,17 +230,17 @@ export default function ConnectNumber() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-blue-700">Подключение:</span>
-                      <span className="font-semibold text-blue-900">${connectionFee?.toLocaleString() ?? 0}</span>
+                      <span className="font-semibold text-blue-900">${((connectionFee ?? 0) / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-blue-700">Абонентская плата:</span>
-                      <span className="font-semibold text-blue-900">${monthlyFee?.toLocaleString() ?? 0}/мес</span>
+                      <span className="font-semibold text-blue-900">${((monthlyFee ?? 0) / 100).toFixed(2)}/мес</span>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-blue-200">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-blue-900">Итого за первый месяц:</span>
-                      <span className="text-lg font-bold text-blue-900">${((connectionFee ?? 0) + (monthlyFee ?? 0)).toLocaleString()}</span>
+                      <span className="text-lg font-bold text-blue-900">${(((connectionFee ?? 0) + (monthlyFee ?? 0)) / 100).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -275,8 +253,8 @@ export default function ConnectNumber() {
                       <div>
                         <div className="font-medium text-red-800 mb-1">Недостаточно средств</div>
                         <div className="text-sm text-red-700">
-                          Для подключения номера необходимо: ${((connectionFee ?? 0) + (monthlyFee ?? 0)).toLocaleString()}<br/>
-                          Ваш баланс: ${user.balance?.toLocaleString() ?? 0}
+                          Для подключения номера необходимо: ${(((connectionFee ?? 0) + (monthlyFee ?? 0)) / 100).toFixed(2)}<br/>
+                          Ваш баланс: ${(user.balance / 100).toFixed(2)}
                         </div>
                         <button 
                           onClick={() => navigate('/topup')} 
@@ -293,10 +271,11 @@ export default function ConnectNumber() {
                   {user.balance >= ((connectionFee ?? 0) + (monthlyFee ?? 0)) ? (
                     <button 
                       onClick={handleConfirmConnection}
-                      className="px-6 py-3 rounded-xl text-white font-medium text-lg hover:shadow-xl transition-all duration-200"
+                      disabled={processing}
+                      className="px-6 py-3 rounded-xl text-white font-medium text-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}
                     >
-                      ✅ Подтвердить подключение
+                      {processing ? '⏳ Обработка...' : '✅ Подтвердить подключение'}
                     </button>
                   ) : (
                     <button 
@@ -309,7 +288,8 @@ export default function ConnectNumber() {
                   )}
                   <button 
                     onClick={() => navigate('/dashboard')} 
-                    className="px-6 py-3 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-colors"
+                    disabled={processing}
+                    className="px-6 py-3 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-colors disabled:opacity-50"
                   >
                     ❌ Отмена
                   </button>

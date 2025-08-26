@@ -37,38 +37,120 @@ router.post("/register", async (req, res) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { email, passwordHash, role: "USER", isActive: false, username },
+    data: { 
+      email, 
+      passwordHash, 
+      role: "USER", 
+      isActive: false, // Users must verify email before they can log in
+      username 
+    },
   });
 
-  // generate email verify token
-  const token = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-  await prisma.emailVerifyToken.create({ data: { token, userId: user.id, expiresAt: expires } });
+  // Send email verification
+  if (transporter) {
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    await prisma.emailVerifyToken.create({ data: { token, userId: user.id, expiresAt: expires } });
 
-  const verifyUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
-  await transporter.sendMail({
-    from: `"Mobilive" <${process.env.SMTP_USER}>`,
-    to: user.email,
-    subject: "Подтверждение email — Mobilive",
-    html: `<p>Здравствуйте!</p><p>Для подтверждения email перейдите по ссылке:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>Срок действия ссылки: 24 часа.</p>`,
-  });
+    const verifyUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
+    await transporter.sendMail({
+      from: `"Mobilive" <${process.env.SMTP_USER}>`,
+      to: user.email,
+      subject: "Подтверждение email — Mobilive",
+      html: `<p>Здравствуйте!</p><p>Для подтверждения email перейдите по ссылке:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>Срок действия ссылки: 24 часа.</p>`,
+    });
 
   return res.status(201).json({ 
-    message: "Мы отправили письмо для подтверждения. Проверьте почту.",
+      message: "Аккаунт создан успешно! Проверьте почту для подтверждения email.",
+      user: { id: user.id, email: user.email, role: user.role, username: user.username }
+    });
+  } else {
+    // Fallback if SMTP is not configured
+    return res.status(201).json({ 
+      message: "Аккаунт создан успешно! Обратитесь к администратору для активации.",
     user: { id: user.id, email: user.email, role: user.role, username: user.username }
   });
+  }
 });
 
 router.get("/verify-email", async (req, res) => {
   const token = (req.query.token as string) || "";
   if (!token) return res.status(400).json({ message: "token required" });
+  
   const record = await prisma.emailVerifyToken.findUnique({ where: { token } });
   if (!record) return res.status(400).json({ message: "Invalid token" });
-  if (record.used) return res.status(400).json({ message: "Token already used" });
+  
+  // Проверяем, не истек ли токен
   if (record.expiresAt < new Date()) return res.status(400).json({ message: "Token expired" });
-  await prisma.user.update({ where: { id: record.userId }, data: { isActive: true } });
-  await prisma.emailVerifyToken.update({ where: { id: record.id }, data: { used: true } });
-  return res.json({ message: "Email подтверждён. Теперь вы можете войти." });
+  
+  // Если токен уже использован, проверяем статус пользователя
+  if (record.used) {
+    const user = await prisma.user.findUnique({ where: { id: record.userId } });
+    if (user?.isActive) {
+      // Email уже подтвержден - возвращаем успех
+      return res.json({ 
+        message: "Email уже подтверждён. Теперь вы можете войти.",
+        alreadyVerified: true 
+      });
+    } else {
+      // Что-то пошло не так - возвращаем ошибку
+      return res.status(400).json({ message: "Token already used and user not active" });
+    }
+  }
+  
+  // Активируем пользователя и помечаем токен как использованный
+  try {
+    await prisma.$transaction([
+      prisma.user.update({ 
+        where: { id: record.userId }, 
+        data: { isActive: true } 
+      }),
+      prisma.emailVerifyToken.update({ 
+        where: { id: record.id }, 
+        data: { used: true } 
+      })
+    ]);
+    
+    return res.json({ 
+      message: "Email подтверждён. Теперь вы можете войти.",
+      alreadyVerified: false 
+    });
+  } catch (error) {
+    console.error("Error during email verification:", error);
+    return res.status(500).json({ message: "Internal server error during verification" });
+  }
+});
+
+// Resend verification email
+router.post("/resend-verification", async (req, res) => {
+  const { email } = req.body as { email?: string };
+  if (!email) return res.status(400).json({ message: "Email required" });
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return res.status(404).json({ message: "User not found" });
+  
+  if (user.isActive) return res.status(400).json({ message: "Email already verified" });
+
+  // Delete old tokens for this user
+  await prisma.emailVerifyToken.deleteMany({ where: { userId: user.id } });
+
+  if (transporter) {
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    await prisma.emailVerifyToken.create({ data: { token, userId: user.id, expiresAt: expires } });
+
+    const verifyUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
+    await transporter.sendMail({
+      from: `"Mobilive" <${process.env.SMTP_USER}>`,
+      to: user.email,
+      subject: "Подтверждение email — Mobilive",
+      html: `<p>Здравствуйте!</p><p>Для подтверждения email перейдите по ссылке:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>Срок действия ссылки: 24 часа.</p>`,
+    });
+
+    return res.json({ message: "Verification email sent" });
+  } else {
+    return res.status(500).json({ message: "Email service not configured" });
+  }
 });
 
 const loginSchema = z.object({
@@ -91,8 +173,12 @@ router.post("/login", async (req, res) => {
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-  const access = jwt.sign({ uid: user.id, role: user.role }, process.env.JWT_ACCESS_SECRET!, { expiresIn: process.env.JWT_ACCESS_EXPIRES || "15m" } as any);
-  const refresh = jwt.sign({ uid: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: process.env.JWT_REFRESH_EXPIRES || "7d" } as any);
+  // Используем fallback значения если переменные окружения не настроены
+  const jwtAccessSecret = process.env.JWT_ACCESS_SECRET || "fallback-jwt-secret-key-2024";
+  const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || "fallback-jwt-refresh-secret-key-2024";
+  
+  const access = jwt.sign({ uid: user.id, role: user.role }, jwtAccessSecret, { expiresIn: process.env.JWT_ACCESS_EXPIRES || "15m" } as any);
+  const refresh = jwt.sign({ uid: user.id }, jwtRefreshSecret, { expiresIn: process.env.JWT_REFRESH_EXPIRES || "7d" } as any);
 
   return res.json({
     message: "Logged in",
@@ -126,6 +212,7 @@ router.post("/forgot-password", async (req, res) => {
   const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 час
   await prisma.resetToken.create({ data: { token, userId: user.id, expiresAt: expires } });
 
+  if (transporter) {
   const resetUrl = `${process.env.APP_URL}/reset-password?token=${token}`;
   await transporter.sendMail({
     from: `"Mobilive" <${process.env.SMTP_USER}>`,
@@ -133,8 +220,10 @@ router.post("/forgot-password", async (req, res) => {
     subject: "Сброс пароля — Mobilive",
     html: `<p>Перейдите по ссылке, чтобы сбросить пароль (1 час):</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
   });
-
   return res.json({ message: "If email exists, reset link sent." });
+  } else {
+    return res.status(500).json({ message: "Email service not configured" });
+  }
 });
 
 // Сброс пароля — выполнение

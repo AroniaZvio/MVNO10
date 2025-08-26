@@ -23,7 +23,8 @@ router.get("/me", requireAuth, async (req, res) => {
         updatedAt: true,
         firstName: true,
         lastName: true,
-        username: true
+        username: true,
+        balance: true // Add balance to profile response
       }
     });
 
@@ -60,7 +61,8 @@ router.put("/me", requireAuth, async (req, res) => {
         updatedAt: true,
         firstName: true,
         lastName: true,
-        username: true
+        username: true,
+        balance: true // Add balance to profile update response
       }
     });
 
@@ -99,20 +101,37 @@ router.get("/me/dashboard", requireAuth, async (req, res) => {
         updatedAt: true,
         firstName: true,
         lastName: true,
-        username: true
+        username: true,
+        balance: true // Add balance to dashboard response
       }
     });
 
     // 2) Подключённые номера
     let connectedNumbers: any[] = [];
-    // Вариант через прямую колонку userId
+    // Ищем номера, которые принадлежат пользователю И имеют статус "connected"
     try {
-      // @ts-ignore — на случай, если поля userId нет в схеме
       connectedNumbers = await prisma.phoneNumber.findMany({
-        where: { userId: uid },
-        orderBy: { id: "asc" }
+        where: { 
+          userId: uid,
+          status: "connected" // Только подключенные номера
+        },
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          mobileNumber: true,
+          countryName: true,
+          countryCode: true,
+          status: true,
+          connectionFee: true,
+          monthlyFee: true,
+          reservedAt: true,
+          lastPaymentDate: true
+        }
       });
-    } catch {}
+    } catch (error) {
+      console.error("Error fetching connected numbers:", error);
+      connectedNumbers = [];
+    }
 
     // Если есть relation user -> numbers (и она выведена в Prisma) — можно так:
     if (connectedNumbers.length === 0) {
@@ -123,7 +142,7 @@ router.get("/me/dashboard", requireAuth, async (req, res) => {
           include: { numbers: true }
         });
         // @ts-ignore
-        connectedNumbers = (withNumbers as any)?.numbers ?? [];
+        connectedNumbers = (withNumbers as any)?.numbers?.filter((n: any) => n.status === "connected") ?? [];
       } catch {}
     }
 

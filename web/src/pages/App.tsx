@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import PhoneNumbersTable, { type PhoneNumberRow } from '../components/PhoneNumbersTable';
-import { reserveMyNumber, canReserveMoreNumbers } from '../lib/myNumber';
+import { useState } from "react";
+import AvailableNumbersTable from '../components/numbers/AvailableNumbersTable';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+import SmartTariffButton from '../components/SmartTariffButton';
+
 
 export default function App() {
   const [isServicesDropdownOpen, setIsServicesDropdownOpen] = useState(false);
@@ -343,105 +343,79 @@ export default function App() {
         </div>
       </header>
 
-      {/* Доступные номера directly under header */}
+      {/* Main Content Block - объединенный с кнопками */}
+      <section className="py-0 bg-[#e8ebea]">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="text-center">
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 text-white bg-[#0A7B75] px-6 py-4 rounded-lg inline-block">
+              A new generation of VoIP for your business
+            </h2>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <SmartTariffButton />
+              <Link
+                to="/register"
+                className="px-6 py-3 rounded-xl border-2 border-slate-300 text-slate-700 font-semibold hover:bg-white hover:shadow-lg hover:border-slate-400 transition-all duration-200 text-center text-base"
+              >
+                ✨ Начать сейчас
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Available Numbers Section - сразу под шапкой */}
       <div className="bg-white/60 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <h3 className="text-lg font-semibold mb-3">Доступные номера</h3>
-            <HeroPhoneNumbers />
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3">
+            <h3 className="text-lg font-semibold mb-2">Доступные номера</h3>
+            <AvailableNumbersTable />
           </div>
         </div>
       </div>
 
-      {/* Hero Section */}
-      <main className="relative overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-br from-[#0A7B75]/20 to-[#1C9C94]/20 blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-gradient-to-br from-[#1C9C94]/20 to-[#0A7B75]/20 blur-3xl"></div>
+      {/* AI Functionality Section - ниже таблицы */}
+      <section className="py-16 bg-gradient-to-r from-slate-50 to-blue-50">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 text-slate-800">
+              🚀 ИИ-функционал
+            </h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Автоматизация и ИИ для бизнеса
+            </p>
+          </div>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Виртуальный оператор 24/7 */}
+            <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 p-6 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl mb-4 mx-auto" style={{background: `linear-gradient(to bottom right, #0A7B75, #1C9C94)`}}>
+                🤖
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Виртуальный оператор 24/7</h3>
+              <p className="text-slate-600 text-sm">Voice AI для автоматизации звонков и обработки запросов клиентов</p>
             </div>
 
-  <div className="relative mx-auto max-w-7xl px-4 pt-20 pb-24">
-          <section className="grid gap-12 lg:grid-cols-2 lg:items-center">
-            {/* Features Card — справа */}
-            <div className="relative order-2 lg:order-2">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0A7B75]/10 to-[#1C9C94]/10 rounded-3xl blur-xl"></div>
-              <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
-                <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-slate-800 mb-2">🎯 Готовый функционал</h3>
-                  <p className="text-slate-600">Все необходимое для запуска MVNO</p>
-          </div>
-
-                <ul className="space-y-5">
-                  <li className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{background: `linear-gradient(to bottom right, #0A7B75, #1C9C94)`}}>
-                      ✓
-                    </div>
-                <div>
-                      <div className="font-semibold text-slate-800 mb-1">📧 Подключение виртуального номера и eSIM</div>
-                </div>
-              </li>
-                  <li className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{background: `linear-gradient(to bottom right, #0A7B75, #1C9C94)`}}>
-                      ✓
-                    </div>
-                <div>
-                      <div className="font-semibold text-slate-800 mb-1">🔐 Готовые решения для бизнеса</div>
-                </div>
-              </li>
-                  <li className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{background: `linear-gradient(to bottom right, #0A7B75, #1C9C94)`}}>
-                      ✓
-                    </div>
-                <div>
-                      <div className="font-semibold text-slate-800 mb-1">⚡ Колл-центр</div>
-                </div>
-              </li>
-            </ul>
+            {/* Виртуальный менеджер по продажам */}
+            <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 p-6 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl mb-4 mx-auto" style={{background: `linear-gradient(to bottom right, #0A7B75, #1C9C94)`}}>
+                💼
               </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Виртуальный менеджер по продажам</h3>
+              <p className="text-slate-600 text-sm">Автоматизация продаж и консультаций с использованием ИИ</p>
             </div>
 
-            {/* Text content — слева */}
-            <div className="text-center lg:text-left order-1 lg:order-1">
-
-                             <h1 className="text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                 <span style={{color: '#0A7B75'}}>
-                   Мобильная связь
-                 </span>
-                 <br />
-                 <span style={{color: '#1C9C94'}}>
-                   нового поколения
-                 </span>
-               </h1>
-              
-              <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Современная MVNO платформа с полным циклом управления: от регистрации 
-                до администрирования тарифов. Готовое решение для запуска виртуального оператора.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6">
-                                 <Link
-                   to="/plans"
-                   className="px-8 py-4 rounded-xl text-white font-semibold hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 text-center"
-                   style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`, boxShadow: '0 10px 25px rgba(10, 123, 117, 0.25)'}}
-                 >
-                   🚀 Смотреть тарифы
-                 </Link>
-                <Link
-                  to="/register"
-                  className="px-8 py-4 rounded-xl border-2 border-slate-200 text-slate-700 font-semibold hover:bg-white hover:shadow-lg transition-all duration-200 text-center"
-                >
-                  ✨ Начать сейчас
-                </Link>
+            {/* ИИ-агент для соцсетей */}
+            <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 p-6 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl mb-4 mx-auto" style={{background: `linear-gradient(to bottom right, #0A7B75, #1C9C94)`}}>
+                📱
               </div>
-
-              {/* Public phone numbers table was here in the hero; moved to render under header for easier access */}
-              
-
+              <h3 className="text-lg font-bold text-slate-800 mb-2">ИИ-агент для соцсетей</h3>
+              <p className="text-slate-600 text-sm">Автоматизация мессенджеров и социальных сетей</p>
+            </div>
           </div>
-        </section>
         </div>
-      </main>
+      </section>
 
       {/* Footer */}
       <footer className="text-white" style={{background: `linear-gradient(to right, #0A7B75, #1C9C94)`}}>
@@ -490,50 +464,4 @@ export default function App() {
   );
 }
 
-function HeroPhoneNumbers() {
-  const [rows, setRows] = useState<PhoneNumberRow[]>([]);
-  const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch(`${API}/api/phone-numbers/public`);
-        if (!r.ok) throw new Error('Не удалось получить список номеров');
-        setRows(await r.json());
-        setErr(null);
-      } catch (e: unknown) {
-        const ex = e as { message?: string } | undefined;
-        setErr(ex?.message ?? String(e ?? 'Ошибка'));
-      }
-    })();
-  }, []);
-
-  function handleBuy(row: PhoneNumberRow) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      // redirect unauthenticated users to the registration page (full URL)
-      window.location.href = 'http://localhost:5173/register';
-      return;
-    }
-    if (!canReserveMoreNumbers()) {
-      setErr('Достигнут лимит брони (макс. 5)');
-      return;
-    }
-    const res = reserveMyNumber({ id: row.id, mobileNumber: row.mobileNumber, countryName: row.countryName, countryCode: row.countryCode });
-    if (res) {
-      setErr(null);
-      // notify other parts
-      try { window.dispatchEvent(new Event('my-numbers-updated')); } catch { /* ignore */ }
-    } else {
-      setErr('Не удалось забронировать номер');
-    }
-  }
-
-  return (
-    <div>
-      {err && <div className="text-red-600 mb-2">{err}</div>}
-  {/* authRequired modal removed; unauthenticated users are redirected to /register on Buy */}
-  <PhoneNumbersTable rows={rows} onBuy={handleBuy} readOnly={true} buyRedirectUrl={'http://localhost:5173/register'} />
-    </div>
-  );
-}

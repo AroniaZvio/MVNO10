@@ -113,7 +113,32 @@ export default function Register() {
               </button>
             </form>
 
-            {msg && <p className="mt-4 text-sm" style={{color:'#0A7B75'}}>{msg}</p>}
+            {msg && (
+              <div className={`mt-4 p-4 rounded-xl text-sm ${
+                msg.includes('успешно') || msg.includes('почту') 
+                  ? 'bg-green-50 text-green-800 border border-green-200' 
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }`}>
+                {msg}
+                {msg.includes('успешно') && (
+                  <div className="mt-3 space-y-2">
+                    <div className="text-xs text-green-600 font-medium">
+                      📧 Что дальше?
+                    </div>
+                    <div className="text-xs text-green-600 space-y-1">
+                      <p>• Проверьте почту и найдите письмо от Mobilive</p>
+                      <p>• Нажмите на ссылку для подтверждения email</p>
+                      <p>• После подтверждения вы сможете войти в систему</p>
+                    </div>
+                    <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-700">
+                        💡 Не получили письмо? Проверьте папку "Спам" или запросите повторную отправку на странице входа
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <p className="mt-4 text-sm text-slate-600 text-center">
               Уже есть аккаунт? <Link to="/login" className="font-medium" style={{color:'#1C9C94'}}>Войти</Link>

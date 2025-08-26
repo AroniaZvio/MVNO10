@@ -8,11 +8,14 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg("");
     setLoading(true);
+    setShowResend(false);
     try {
       const r = await api.post("/auth/login", { email, password });
       const token = r.data.token as string;
@@ -35,9 +38,34 @@ export default function Login() {
         nav("/dashboard");
       }
     } catch (e:any) {
-      setMsg(e?.response?.data?.message || "Ошибка входа");
+      const errorMessage = e?.response?.data?.message || "Ошибка входа";
+      if (errorMessage === "Email not verified") {
+        setMsg("Email не подтверждён. Проверьте почту и перейдите по ссылке для подтверждения.");
+        setShowResend(true);
+      } else {
+        setMsg(errorMessage);
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!email.trim()) {
+      setMsg("Введите email для повторной отправки");
+      return;
+    }
+    
+    setResendLoading(true);
+    setMsg("");
+    try {
+      await api.post("/auth/resend-verification", { email: email.trim() });
+      setMsg("Письмо для подтверждения отправлено повторно. Проверьте почту.");
+      setShowResend(false);
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || "Ошибка отправки письма");
+    } finally {
+      setResendLoading(false);
     }
   }
   
@@ -103,6 +131,17 @@ export default function Login() {
           {msg && (
             <div className="mt-4 p-4 rounded-xl bg-red-50 text-red-800 border border-red-200 text-sm">
               {msg}
+              {showResend && (
+                <div className="mt-3">
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className="w-full px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {resendLoading ? "Отправка..." : "📧 Отправить письмо повторно"}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
