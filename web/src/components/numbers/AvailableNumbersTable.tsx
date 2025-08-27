@@ -67,7 +67,7 @@ export default function AvailableNumbersTable({
             </button>
             <button 
               onClick={() => {
-                const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+                const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge';
                 window.open(`${API_URL}/api/phone-numbers/public`, '_blank');
               }}
               className="mt-2 ml-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200"

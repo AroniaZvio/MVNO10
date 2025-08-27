@@ -26,7 +26,7 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
         setToken(token);
 
         // Лучше использовать относительный путь, если настроен прокси: /api/users/me
-        const res = await fetch("http://localhost:4000/api/users/me", {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge'}/api/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

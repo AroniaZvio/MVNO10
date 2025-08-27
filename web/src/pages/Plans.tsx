@@ -173,7 +173,7 @@ export default function Plans() {
           <div className="mt-4">
             <button
               onClick={async () => {
-                const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+                const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge';
                 const token = localStorage.getItem('token');
                 console.log('🔧 Testing API connection...');
                 console.log('API URL:', API_URL);

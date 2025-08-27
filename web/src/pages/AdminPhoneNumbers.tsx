@@ -4,7 +4,7 @@ import { adminApi } from '../lib/adminApi';
 import PhoneNumbersTable from '../components/PhoneNumbersTable';
 import type { PhoneNumberRow } from '../components/PhoneNumbersTable';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+const API = import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge';
 
 export default function AdminPhoneNumbers() {
   const [rows, setRows] = useState<PhoneNumberRow[]>([]);

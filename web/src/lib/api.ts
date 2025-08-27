@@ -1,5 +1,5 @@
 import axios from "axios";
-const base = (import.meta.env.VITE_API_URL ?? "http://localhost:4000") + "/api";
+const base = (import.meta.env.VITE_API_BASE_URL ?? "https://api.mobilive.ge") + "/api";
 export const api = axios.create({ baseURL: base });
 
 export function setToken(token?: string) {

@@ -33,7 +33,7 @@ export function usePlans() {
       setLoading(true);
       setError(null);
       
-      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+      const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge';
       const response = await fetch(`${API_URL}/api/plans`);
       
       if (!response.ok) {
@@ -67,7 +67,7 @@ export function useConnectedPlan() {
       setLoading(true);
       setError(null);
       
-      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+      const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge';
       console.log('🔍 Fetching connected plan from:', `${API_URL}/api/users/me/plan`);
       
       const token = localStorage.getItem('token');
@@ -103,7 +103,7 @@ export function useConnectedPlan() {
       setLoading(true);
       setError(null);
       
-      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+      const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge';
       console.log('🔗 Connecting plan:', planId, 'to:', `${API_URL}/api/users/me/plan`);
       
       const token = localStorage.getItem('token');

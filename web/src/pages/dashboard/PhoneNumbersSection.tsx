@@ -8,7 +8,7 @@ import {
   type MyNumber,
 } from '../../lib/myNumber';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+const API = import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge';
 
 export default function PhoneNumbersSection() {
   const [available, setAvailable] = useState<PhoneNumberRow[]>([]);

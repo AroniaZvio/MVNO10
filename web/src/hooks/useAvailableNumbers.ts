@@ -21,7 +21,7 @@ export function useAvailableNumbers(params?: any) {
       setLoading(true);
       setError(null);
       
-      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+      const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge';
       console.log('🔍 Fetching from:', `${API_URL}/api/phone-numbers/public`);
       
       const response = await fetch(`${API_URL}/api/phone-numbers/public`, {
@@ -41,7 +41,7 @@ export function useAvailableNumbers(params?: any) {
     } catch (e: any) {
       console.error("Failed to load available numbers:", e);
       if (e.name === 'TypeError' && e.message.includes('fetch')) {
-        setError("Не удается подключиться к серверу. Проверьте, что бэкенд запущен на http://localhost:4000");
+        setError("Не удается подключиться к серверу. Проверьте, что бэкенд запущен на https://api.mobilive.ge");
       } else if (e.message.includes('Failed to fetch')) {
         setError("Ошибка сети. Проверьте подключение к интернету и доступность сервера.");
       } else {

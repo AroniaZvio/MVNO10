@@ -29,6 +29,11 @@ app.use(cors({
     'http://192.168.0.83:8081',
     'http://192.168.0.83:19006',
     'http://192.168.0.83:4000',
+    // Production domains
+    'https://www.mobilive.ge',
+    'https://mobilive.ge',
+    'http://www.mobilive.ge',
+    'http://mobilive.ge'
   ],
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

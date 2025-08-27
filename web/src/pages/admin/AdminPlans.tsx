@@ -10,7 +10,7 @@ export default function AdminPlans() {
 
   const load = () => {
     // читаем публичный GET /plans (можно и админский, но публичный тоже ок)
-    fetch("http://localhost:4000/api/plans").then(r=>r.json()).then(setRows).catch(()=>setErr("Ошибка загрузки планов"));
+            fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'https://api.mobilive.ge'}/api/plans`).then(r=>r.json()).then(setRows).catch(()=>setErr("Ошибка загрузки планов"));
   };
 
   useEffect(() => { load(); }, []);
