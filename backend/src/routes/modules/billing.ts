@@ -226,7 +226,7 @@ router.get("/transactions", requireAuth, async (req, res) => {
     ]);
 
     return res.json({
-      transactions: transactions.map(t => ({
+      transactions: transactions.map((t: any) => ({
         ...t,
         amountFormatted: `$${(Math.abs(t.amount) / 100).toFixed(2)}`,
         balanceBeforeFormatted: `$${(t.balanceBefore / 100).toFixed(2)}`,
