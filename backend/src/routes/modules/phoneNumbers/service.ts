@@ -62,3 +62,19 @@ export const update = (id: number, data: Partial<{
 }>) => prisma.phoneNumber.update({ where: { id }, data });
 
 export const remove = (id: number) => prisma.phoneNumber.delete({ where: { id } });
+
+// Получить номер по ID
+export const getById = (id: number) => prisma.phoneNumber.findUnique({ where: { id } });
+
+// Подключить номер к пользователю
+export const connectToUser = async (numberId: number, userId: number) => {
+  return prisma.phoneNumber.update({
+    where: { id: numberId },
+    data: {
+      userId: userId,
+      status: 'connected',
+      reservedAt: new Date(),
+      lastPaymentDate: new Date()
+    }
+  });
+};

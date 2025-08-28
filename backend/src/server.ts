@@ -1,6 +1,8 @@
 import { app } from "./app";
+import { config } from "./lib/config";
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
-app.listen(PORT, () => {
-  console.log(`🚀 Backend running: http://localhost:${PORT}`);
+app.listen(config.PORT, () => {
+  console.log(`🚀 Backend running in ${config.NODE_ENV} mode`);
+  console.log(`📍 Server: http://localhost:${config.PORT}`);
+  console.log(`🗄️  Database: ${config.DATABASE_URL.split('@')[1] || 'localhost'}`);
 });

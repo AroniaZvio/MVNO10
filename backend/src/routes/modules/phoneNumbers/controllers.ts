@@ -135,3 +135,40 @@ export async function removeOne(req: Request, res: Response) {
   await svc.remove(id);
   res.json({ ok: true });
 }
+
+// Подключение номера пользователем
+export async function connectNumber(req: Request, res: Response) {
+  try {
+    const numberId = Number(req.params.id);
+    const userId = (req as any).user?.uid;
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Проверяем, что номер доступен
+    const number = await svc.getById(numberId);
+    if (!number) {
+      return res.status(404).json({ message: 'Number not found' });
+    }
+
+    if (number.status !== 'available' && number.userId !== null) {
+      return res.status(400).json({ message: 'Number is not available' });
+    }
+
+    // Подключаем номер к пользователю
+    const connectedNumber = await svc.connectToUser(numberId, userId);
+    
+    res.json({
+      message: 'Number connected successfully',
+      number: connectedNumber
+    });
+    
+  } catch (error: any) {
+    console.error('❌ Error connecting number:', error);
+    res.status(500).json({ 
+      message: 'Failed to connect number',
+      error: error.message 
+    });
+  }
+}
