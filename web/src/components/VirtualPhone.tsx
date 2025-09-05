@@ -28,7 +28,7 @@ const VirtualPhone: React.FC<VirtualPhoneProps> = ({ activeNumber, userBalance, 
       setIsCallActive(true);
       // Здесь будет логика звонка
       setTimeout(() => {
-        alert(`Звонок на номер ${dialedNumber} с ${activeNumber}\n\nФункция звонков в разработке!`);
+        alert(`Call to number ${dialedNumber} from ${activeNumber}\n\nCall function in development!`);
         setIsCallActive(false);
         setDialedNumber('');
       }, 1000);
@@ -77,7 +77,7 @@ const VirtualPhone: React.FC<VirtualPhoneProps> = ({ activeNumber, userBalance, 
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
       onClick={handleModalClick}
     >
@@ -86,11 +86,11 @@ const VirtualPhone: React.FC<VirtualPhoneProps> = ({ activeNumber, userBalance, 
         <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white p-4 rounded-t-3xl">
           <div className="flex justify-between items-center">
             <div className="text-left">
-              <div className="text-xs opacity-90">Активный номер</div>
+              <div className="text-xs opacity-90">Active number</div>
               <div className="text-sm font-medium">{activeNumber}</div>
             </div>
             <div className="text-right">
-              <div className="text-xs opacity-90">Баланс</div>
+              <div className="text-xs opacity-90">Balance</div>
               <div className="text-sm font-medium">${(userBalance / 100).toFixed(2)}</div>
             </div>
           </div>
@@ -101,7 +101,7 @@ const VirtualPhone: React.FC<VirtualPhoneProps> = ({ activeNumber, userBalance, 
           {/* Number Input */}
           <div className="text-center mb-8">
             <div className="text-3xl font-light text-gray-800 font-mono tracking-wider">
-              {dialedNumber || 'Введите номер'}
+              {dialedNumber || 'Enter number'}
             </div>
           </div>
 
@@ -142,13 +142,12 @@ const VirtualPhone: React.FC<VirtualPhoneProps> = ({ activeNumber, userBalance, 
             <button
               onClick={handleCall}
               disabled={dialedNumber.length === 0 || isCallActive}
-              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
-                isCallActive 
-                  ? 'bg-red-500 animate-pulse' 
-                  : dialedNumber.length > 0 
-                    ? 'bg-green-500 hover:bg-green-600' 
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${isCallActive
+                  ? 'bg-red-500 animate-pulse'
+                  : dialedNumber.length > 0
+                    ? 'bg-green-500 hover:bg-green-600'
                     : 'bg-gray-300 cursor-not-allowed'
-              }`}
+                }`}
             >
               {isCallActive ? (
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,11 +164,10 @@ const VirtualPhone: React.FC<VirtualPhoneProps> = ({ activeNumber, userBalance, 
             <button
               onClick={handleBackspace}
               disabled={dialedNumber.length === 0}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                dialedNumber.length > 0 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${dialedNumber.length > 0
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
                   : 'bg-gray-300 cursor-not-allowed text-gray-500'
-              }`}
+                }`}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.89-6.89a2 2 0 012.83 0L21 12a2 2 0 01-2.83 2.83L12 9.17l-6.17 6.17A2 2 0 013 12z" />
@@ -184,7 +182,7 @@ const VirtualPhone: React.FC<VirtualPhoneProps> = ({ activeNumber, userBalance, 
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-sm font-medium"
           >
-            Закрыть
+            Close
           </button>
         </div>
       </div>

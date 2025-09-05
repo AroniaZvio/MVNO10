@@ -33,12 +33,12 @@ const Dashboard: React.FC = () => {
   const [_activeNumberId, setActiveNumberId] = useState<string | null>(null);
   const [showVirtualPhone, setShowVirtualPhone] = useState(false);
   const { connectedPlan, reload: reloadPlan } = useConnectedPlan();
-  
+
   // Функция для загрузки данных кабинета
   const refetch = async () => {
     try {
       const dashboardData = await userApi.getDashboard();
-      
+
       // Use balance from dashboard response instead of separate API call
       const dataWithCurrentBalance = {
         ...dashboardData,
@@ -52,7 +52,7 @@ const Dashboard: React.FC = () => {
         }))
       };
       setData(dataWithCurrentBalance);
-      
+
       // Устанавливаем первый номер как активный по умолчанию
       if (dashboardData.connectedNumbers.length > 0) {
         setActiveNumberId(dashboardData.connectedNumbers[0].id);
@@ -85,7 +85,7 @@ const Dashboard: React.FC = () => {
           }
         ]
       });
-      
+
       // Устанавливаем первый тестовый номер как активный
       setActiveNumberId('1');
     } finally {
@@ -97,22 +97,22 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     refetch();
   }, []);
-  
+
   // Слушаем обновления баланса
   useEffect(() => {
     const handleBalanceUpdate = (event: CustomEvent) => {
       const { newBalance } = event.detail;
-      
+
       // Обновляем баланс
       setData(prev => prev ? {
         ...prev,
         user: { ...prev.user, balance: newBalance }
       } : prev);
-      
+
       // Обновляем данные после покупки
       refetch();
     };
-    
+
     window.addEventListener('balance-updated', handleBalanceUpdate as EventListener);
     return () => window.removeEventListener('balance-updated', handleBalanceUpdate as EventListener);
   }, []);
@@ -123,7 +123,7 @@ const Dashboard: React.FC = () => {
       // Обновляем данные тарифа
       reloadPlan();
     };
-    
+
     window.addEventListener('plan-updated', handlePlanUpdate);
     return () => window.removeEventListener('plan-updated', handlePlanUpdate);
   }, [reloadPlan]);
@@ -140,7 +140,7 @@ const Dashboard: React.FC = () => {
   // Функция для изменения активного номера
   const handleNumberActivation = (numberId: string) => {
     setActiveNumberId(numberId);
-    
+
     // Обновляем состояние номеров
     setData(prev => prev ? {
       ...prev,
@@ -153,12 +153,12 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{backgroundColor: '#f8fafc'}}>
+      <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
         <DashboardNavigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="text-2xl mb-4">⏳</div>
-            <div style={{color: '#0A7B75'}}>Загрузка данных...</div>
+            <div style={{ color: '#0A7B75' }}>Loading data...</div>
           </div>
         </div>
       </div>
@@ -167,12 +167,12 @@ const Dashboard: React.FC = () => {
 
   if (!data) {
     return (
-      <div className="min-h-screen" style={{backgroundColor: '#f8fafc'}}>
+      <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
         <DashboardNavigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="text-2xl mb-4">❌</div>
-            <div style={{color: '#0A7B75'}}>Ошибка загрузки данных</div>
+            <div style={{ color: '#0A7B75' }}>Error loading data</div>
           </div>
         </div>
       </div>
@@ -180,14 +180,14 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{backgroundColor: '#f8fafc'}}>
+    <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
       <DashboardNavigation />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Заголовок */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold" style={{color: '#0A7B75'}}>Добро пожаловать!</h1>
-          <p className="text-slate-600 mt-2">Обзор вашего аккаунта и быстрый доступ к функциям</p>
+          <h1 className="text-3xl font-bold" style={{ color: '#0A7B75' }}>Welcome!</h1>
+          <p className="text-slate-600 mt-2">Overview of your account and quick access to features</p>
         </div>
 
         {/* Основная информация */}
@@ -196,7 +196,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="text-center mb-4">
               <div className="text-4xl mb-2">👤</div>
-              <h3 className="text-lg font-semibold" style={{color: '#0A7B75'}}>Профиль</h3>
+              <h3 className="text-lg font-semibold" style={{ color: '#0A7B75' }}>Profile</h3>
             </div>
             <div className="text-center mb-4">
               <div className="font-medium text-slate-900 mb-1">
@@ -207,11 +207,11 @@ const Dashboard: React.FC = () => {
             <Link
               to="/dashboard/profile"
               className="block w-full text-center px-4 py-2 text-white font-medium rounded-lg transition-colors"
-              style={{backgroundColor: '#0A7B75'}}
+              style={{ backgroundColor: '#0A7B75' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
             >
-              Управлять профилем
+              Manage Profile
             </Link>
           </div>
 
@@ -219,22 +219,22 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="text-center mb-4">
               <div className="text-4xl mb-2">💰</div>
-              <h3 className="text-lg font-semibold" style={{color: '#0A7B75'}}>Баланс</h3>
+              <h3 className="text-lg font-semibold" style={{ color: '#0A7B75' }}>Balance</h3>
             </div>
             <div className="text-center mb-4">
-              <div className="text-2xl font-bold" style={{color: '#0A7B75'}}>
+              <div className="text-2xl font-bold" style={{ color: '#0A7B75' }}>
                 ${(data.user.balance / 100).toFixed(2)}
               </div>
-              <div className="text-sm text-slate-500">Доступно средств</div>
+              <div className="text-sm text-slate-500">Available funds</div>
             </div>
             <Link
               to="/dashboard/profile"
               className="block w-full text-center px-4 py-2 text-white font-medium rounded-lg transition-colors"
-              style={{backgroundColor: '#0A7B75'}}
+              style={{ backgroundColor: '#0A7B75' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
             >
-              Пополнить баланс
+              Top Up Balance
             </Link>
           </div>
 
@@ -242,29 +242,29 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="text-center mb-4">
               <div className="text-4xl mb-2">📱</div>
-              <h3 className="text-lg font-semibold" style={{color: '#0A7B75'}}>Мои номера</h3>
+              <h3 className="text-lg font-semibold" style={{ color: '#0A7B75' }}>My Numbers</h3>
             </div>
             <div className="text-center mb-4">
-              <div className="text-2xl font-bold" style={{color: '#0A7B75'}}>
+              <div className="text-2xl font-bold" style={{ color: '#0A7B75' }}>
                 {data.connectedNumbers.length}
               </div>
-              <div className="text-sm text-slate-500">Подключено номеров</div>
+              <div className="text-sm text-slate-500">Connected numbers</div>
             </div>
             <Link
               to="/dashboard/connected-numbers"
               className="block w-full text-center px-4 py-2 text-white font-medium rounded-lg transition-colors"
-              style={{backgroundColor: '#0A7B75'}}
+              style={{ backgroundColor: '#0A7B75' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
             >
-              Управлять номерами
+              Manage Numbers
             </Link>
           </div>
         </div>
 
         {/* Быстрые действия */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-          <h2 className="text-xl font-bold mb-4" style={{color: '#0A7B75'}}>Быстрые действия</h2>
+          <h2 className="text-xl font-bold mb-4" style={{ color: '#0A7B75' }}>Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
               to="/dashboard/available-numbers"
@@ -285,13 +285,13 @@ const Dashboard: React.FC = () => {
             >
               <div className="text-2xl">🔍</div>
               <div>
-                <div className="font-medium">Найти новый номер</div>
-                <div className="text-sm opacity-80">Просмотр доступных номеров для подключения</div>
+                <div className="font-medium">Find New Number</div>
+                <div className="text-sm opacity-80">Browse available numbers for connection</div>
               </div>
             </Link>
-            
+
             <Link
-                              to="/connect-plans"
+              to="/connect-plans"
               className="flex items-center gap-3 p-4 rounded-lg transition-colors border"
               style={{
                 backgroundColor: '#f0f9f8',
@@ -309,8 +309,8 @@ const Dashboard: React.FC = () => {
             >
               <div className="text-2xl">📋</div>
               <div>
-                <div className="font-medium">Подключить тариф</div>
-                <div className="text-sm opacity-80">Выбор и подключение тарифного плана</div>
+                <div className="font-medium">Connect Tariff</div>
+                <div className="text-sm opacity-80">Select and connect tariff plan</div>
               </div>
             </Link>
 
@@ -333,8 +333,8 @@ const Dashboard: React.FC = () => {
             >
               <div className="text-2xl">🏢</div>
               <div>
-                <div className="font-medium">Доп услуги</div>
-                <div className="text-sm opacity-80">Подключение АТС с внутренними номерами</div>
+                <div className="font-medium">Additional Services</div>
+                <div className="text-sm opacity-80">Connect PBX with internal numbers</div>
               </div>
             </Link>
           </div>
@@ -344,11 +344,11 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Подключенные номера */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
-            <h2 className="text-lg font-semibold mb-4" style={{color: '#0A7B75'}}>
-              Подключенные номера
+            <h2 className="text-lg font-semibold mb-4" style={{ color: '#0A7B75' }}>
+              Connected Numbers
               {data.connectedNumbers.length > 0 && (
                 <span className="text-sm font-normal text-slate-500 ml-2">
-                  ({data.connectedNumbers.filter(n => n.isActive).length} активен)
+                  ({data.connectedNumbers.filter(n => n.isActive).length} active)
                 </span>
               )}
             </h2>
@@ -356,38 +356,36 @@ const Dashboard: React.FC = () => {
               {data.connectedNumbers.length > 0 ? (
                 <div className="space-y-3">
                   {data.connectedNumbers.slice(0, 2).map(n => (
-                    <div 
-                      key={n.id} 
-                      className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                        n.isActive 
-                          ? 'bg-green-50 border-green-300 shadow-sm' 
+                    <div
+                      key={n.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${n.isActive
+                          ? 'bg-green-50 border-green-300 shadow-sm'
                           : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                      }`}
+                        }`}
                       onClick={() => handleNumberActivation(n.id)}
                     >
                       <div className="flex items-center gap-3">
                         <div className="text-lg">📱</div>
                         <div>
                           <div className="font-medium text-sm">
-                            {n.mobileNumber || n.number800 || `Номер #${n.id}`}
+                            {n.mobileNumber || n.number800 || `Number #${n.id}`}
                           </div>
                           <div className="text-xs text-slate-500">{n.countryName} {n.countryCode}</div>
                         </div>
                       </div>
-                      
+
                       {/* Галочка активного номера */}
                       <div className="flex items-center gap-2">
                         {n.isActive && (
                           <div className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">
-                            Активен
+                            Active
                           </div>
                         )}
-                        <div 
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                            n.isActive 
-                              ? 'border-green-500 bg-green-500' 
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${n.isActive
+                              ? 'border-green-500 bg-green-500'
                               : 'border-slate-300 bg-white'
-                          }`}
+                            }`}
                         >
                           {n.isActive && (
                             <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -402,7 +400,7 @@ const Dashboard: React.FC = () => {
                         to="/dashboard/connected-numbers"
                         className="text-blue-600 hover:text-blue-800 text-xs"
                       >
-                        +{data.connectedNumbers.length - 2} еще →
+                        +{data.connectedNumbers.length - 2} more →
                       </Link>
                     </div>
                   )}
@@ -410,7 +408,7 @@ const Dashboard: React.FC = () => {
               ) : (
                 <div className="text-center py-4">
                   <div className="text-2xl mb-2">📱</div>
-                  <div className="text-sm text-slate-500">Нет подключенных номеров</div>
+                  <div className="text-sm text-slate-500">No connected numbers</div>
                 </div>
               )}
             </div>
@@ -418,18 +416,18 @@ const Dashboard: React.FC = () => {
               <Link
                 to="/dashboard/connected-numbers"
                 className="block w-full text-center px-3 py-2 text-white font-medium rounded-lg transition-colors text-sm"
-                style={{backgroundColor: '#0A7B75'}}
+                style={{ backgroundColor: '#0A7B75' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
               >
-                Управлять номерами
+                Manage Numbers
               </Link>
             </div>
           </div>
 
           {/* Подключенный тарифный план */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
-            <h2 className="text-lg font-semibold mb-4" style={{color: '#0A7B75'}}>Подключенный тарифный план</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: '#0A7B75' }}>Connected Tariff Plan</h2>
             <div className="flex-1">
               {connectedPlan ? (
                 <div className="text-center py-4">
@@ -438,16 +436,16 @@ const Dashboard: React.FC = () => {
                   <div className="text-xs text-slate-400 mb-3">
                     {connectedPlan.planDataMb} MB данных, {connectedPlan.planMinutes} минут, {connectedPlan.planSms} SMS
                   </div>
-                  <div className="text-lg font-bold" style={{color: '#0A7B75'}}>{connectedPlan.planPrice}</div>
+                  <div className="text-lg font-bold" style={{ color: '#0A7B75' }}>{connectedPlan.planPrice}</div>
                   <div className="text-xs text-slate-400 mt-1">
-                    Подключен: {new Date(connectedPlan.connectedAt).toLocaleDateString()}
+                    Connected: {new Date(connectedPlan.connectedAt).toLocaleDateString()}
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-4">
                   <div className="text-2xl mb-2">📋</div>
-                  <div className="text-sm text-slate-500 mb-2">Нет подключенного тарифа</div>
-                  <div className="text-xs text-slate-400 mb-3">Подключите тариф для использования услуг</div>
+                  <div className="text-sm text-slate-500 mb-2">No connected tariff</div>
+                  <div className="text-xs text-slate-400 mb-3">Connect a tariff to use services</div>
                 </div>
               )}
             </div>
@@ -455,34 +453,34 @@ const Dashboard: React.FC = () => {
               <Link
                 to="/connect-plans"
                 className="block w-full text-center px-3 py-2 text-white font-medium rounded-lg transition-colors text-sm"
-                style={{backgroundColor: '#0A7B75'}}
+                style={{ backgroundColor: '#0A7B75' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1C9C97'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0A7B75'}
               >
-                {connectedPlan ? 'Изменить тариф' : 'Подключить тариф'}
+                {connectedPlan ? 'Change Tariff' : 'Connect Tariff'}
               </Link>
             </div>
           </div>
 
           {/* Позвонить с сайта */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
-            <h2 className="text-lg font-semibold mb-4" style={{color: '#0A7B75'}}>Позвонить с сайта</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: '#0A7B75' }}>Call from Website</h2>
             <div className="flex-1">
               {(() => {
                 const activeNumber = data.connectedNumbers.find(n => n.isActive);
                 const hasRequirements = activeNumber && connectedPlan;
-                
+
                 return (
                   <div className="space-y-3">
                     {/* Активный номер */}
                     <div className="bg-slate-50 rounded-lg p-3">
-                      <div className="text-xs text-slate-500 mb-1">Активный номер:</div>
+                      <div className="text-xs text-slate-500 mb-1">Active number:</div>
                       {activeNumber ? (
                         <div className="flex items-center gap-2">
                           <div className="text-lg">📱</div>
                           <div>
-                            <div className="font-medium text-sm" style={{color: '#0A7B75'}}>
-                              {activeNumber.mobileNumber || activeNumber.number800 || `Номер #${activeNumber.id}`}
+                            <div className="font-medium text-sm" style={{ color: '#0A7B75' }}>
+                              {activeNumber.mobileNumber || activeNumber.number800 || `Number #${activeNumber.id}`}
                             </div>
                             <div className="text-xs text-slate-400">
                               {activeNumber.countryName} {activeNumber.countryCode}
@@ -495,18 +493,18 @@ const Dashboard: React.FC = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-sm text-slate-400">Нет активного номера</div>
+                        <div className="text-sm text-slate-400">No active number</div>
                       )}
                     </div>
 
                     {/* Подключенный тариф */}
                     <div className="bg-slate-50 rounded-lg p-3">
-                      <div className="text-xs text-slate-500 mb-1">Тарифный план:</div>
+                      <div className="text-xs text-slate-500 mb-1">Tariff plan:</div>
                       {connectedPlan ? (
                         <div className="flex items-center gap-2">
                           <div className="text-lg">📋</div>
                           <div>
-                            <div className="font-medium text-sm" style={{color: '#0A7B75'}}>
+                            <div className="font-medium text-sm" style={{ color: '#0A7B75' }}>
                               {connectedPlan.planName}
                             </div>
                             <div className="text-xs text-slate-400">
@@ -515,23 +513,23 @@ const Dashboard: React.FC = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-sm text-slate-400">Нет подключенного тарифа</div>
+                        <div className="text-sm text-slate-400">No connected tariff</div>
                       )}
                     </div>
 
                     {/* Статус готовности */}
                     {hasRequirements ? (
                       <div className="text-center py-2">
-                        <div className="text-sm text-green-600 font-medium">✓ Готов к звонку</div>
-                        <div className="text-xs text-slate-400">Все настройки подключены</div>
+                        <div className="text-sm text-green-600 font-medium">✓ Ready to call</div>
+                        <div className="text-xs text-slate-400">All settings connected</div>
                       </div>
                     ) : (
                       <div className="text-center py-2">
-                        <div className="text-sm text-orange-600 font-medium">⚠ Настройка требуется</div>
+                        <div className="text-sm text-orange-600 font-medium">⚠ Setup required</div>
                         <div className="text-xs text-slate-400">
-                          {!activeNumber && !connectedPlan && 'Подключите номер и тариф'}
-                          {!activeNumber && connectedPlan && 'Выберите активный номер'}
-                          {activeNumber && !connectedPlan && 'Подключите тарифный план'}
+                          {!activeNumber && !connectedPlan && 'Connect number and tariff'}
+                          {!activeNumber && connectedPlan && 'Select active number'}
+                          {activeNumber && !connectedPlan && 'Connect tariff plan'}
                         </div>
                       </div>
                     )}
@@ -563,7 +561,7 @@ const Dashboard: React.FC = () => {
                   }
                 }}
               >
-                {data.connectedNumbers.find(n => n.isActive) && connectedPlan ? 'Начать звонок' : 'Настройка требуется'}
+                {data.connectedNumbers.find(n => n.isActive) && connectedPlan ? 'Start Call' : 'Setup Required'}
               </button>
             </div>
           </div>
@@ -573,9 +571,9 @@ const Dashboard: React.FC = () => {
       {/* Виртуальный телефон */}
       {showVirtualPhone && (
         <VirtualPhone
-          activeNumber={data?.connectedNumbers.find(n => n.isActive)?.mobileNumber || 
-                       data?.connectedNumbers.find(n => n.isActive)?.number800 || 
-                       'Неизвестный номер'}
+          activeNumber={data?.connectedNumbers.find(n => n.isActive)?.mobileNumber ||
+            data?.connectedNumbers.find(n => n.isActive)?.number800 ||
+            'Неизвестный номер'}
           userBalance={data?.user.balance || 0}
           onClose={() => setShowVirtualPhone(false)}
         />
