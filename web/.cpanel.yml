@@ -1,0 +1,16 @@
+---
+deployment:
+  tasks:
+    - export SRC="/home/mobilive/repos/mvno10/web/dist"
+    - export DEST="/home/mobilive/public_html"
+    - /bin/mkdir -p ${DEST}
+    - /bin/rm -rf ${DEST}/*
+    - /bin/cp -R ${SRC}/* ${DEST}/
+    - /bin/bash -lc 'cat > ${DEST}/.htaccess << "EOF"
+Options -MultiViews
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
+EOF'
