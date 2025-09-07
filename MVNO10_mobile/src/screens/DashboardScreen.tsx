@@ -12,9 +12,15 @@ export default function DashboardScreen({ navigation }: any) {
   const [currentPlan, setCurrentPlan] = useState<UserPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (isRefresh = false) => {
     try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       const [dashboardData, planData] = await Promise.all([
         userApi.getDashboard(),
@@ -26,10 +32,18 @@ export default function DashboardScreen({ navigation }: any) {
       setError(e?.response?.data?.message || e?.message || 'Failed to load');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  // Обновляем данные при изменении пользователя (из AuthContext)
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   if (loading) return (
     <View style={styles.loadingContainer}>
@@ -58,8 +72,13 @@ export default function DashboardScreen({ navigation }: any) {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.userInfo}>
-            <Text style={styles.greeting}>Welcome back!</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
+            <Text style={styles.greeting}>
+              {connected.length > 0 
+                ? (connected[0].mobileNumber || connected[0].number800 || 'No number')
+                : 'No number'
+              }
+            </Text>
+            <Text style={styles.userEmail}>${(balance / 100).toFixed(2)}</Text>
           </View>
           <TouchableOpacity onPress={logout} style={styles.logoutButton}>
             <Text style={styles.logoutButtonText}>Logout</Text>
@@ -72,78 +91,6 @@ export default function DashboardScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Balance Card */}
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <Text style={styles.balanceLabel}>Account Balance</Text>
-            <TouchableOpacity onPress={reloadProfile} style={styles.refreshButton}>
-              <Text style={styles.refreshButtonText}>🔄</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.balanceAmount}>{balance.toFixed(2)} ₾</Text>
-          <Text style={styles.balanceSubtext}>Available for services and plans</Text>
-        </View>
-
-        {/* Current Plan Card */}
-        {currentPlan && (
-          <View style={styles.planCard}>
-            <View style={styles.planHeader}>
-              <Text style={styles.planTitle}>Current Plan</Text>
-              <View style={styles.planStatus}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>Active</Text>
-              </View>
-            </View>
-            <Text style={styles.planName}>{currentPlan.planName}</Text>
-            <View style={styles.planFeatures}>
-              <View style={styles.planFeature}>
-                <Text style={styles.featureIcon}>📱</Text>
-                <Text style={styles.featureText}>
-                  {currentPlan.planDataMb >= 1024 
-                    ? `${(currentPlan.planDataMb / 1024).toFixed(1)} GB` 
-                    : `${currentPlan.planDataMb} MB`
-                  }
-                </Text>
-              </View>
-              <View style={styles.planFeature}>
-                <Text style={styles.featureIcon}>📞</Text>
-                <Text style={styles.featureText}>{currentPlan.planMinutes} min</Text>
-              </View>
-              <View style={styles.planFeature}>
-                <Text style={styles.featureIcon}>💬</Text>
-                <Text style={styles.featureText}>{currentPlan.planSms} SMS</Text>
-              </View>
-            </View>
-            <View style={styles.planPriceContainer}>
-              <Text style={styles.planPrice}>${parseFloat(currentPlan.planPrice).toFixed(2)}</Text>
-              <Text style={styles.planPeriod}>/month</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Quick Actions */}
-        <View style={styles.quickActionsCard}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionsGrid}>
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => navigation.navigate('TariffPlans')}
-            >
-              <Text style={styles.actionIcon}>📋</Text>
-              <Text style={styles.actionText}>
-                {currentPlan ? 'Manage Plans' : 'Choose Plan'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => navigation.navigate('TariffPlans')}
-            >
-              <Text style={styles.actionIcon}>🔢</Text>
-              <Text style={styles.actionText}>Get Number</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Connected Numbers */}
         <View style={styles.numbersCard}>
           <View style={styles.numbersHeader}>
@@ -184,6 +131,84 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
           )}
         </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsCard}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.actionsGrid}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('TariffPlans')}
+            >
+              <Text style={styles.actionIcon}>📋</Text>
+              <Text style={styles.actionText}>
+                {currentPlan ? 'Manage Plans' : 'Choose Plan'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('TariffPlans')}
+            >
+              <Text style={styles.actionIcon}>🔢</Text>
+              <Text style={styles.actionText}>Get Number</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Balance Card */}
+        <View style={styles.balanceCard}>
+          <View style={styles.balanceHeader}>
+            <Text style={styles.balanceLabel}>Account Balance</Text>
+            <TouchableOpacity 
+              onPress={() => fetchData(true)} 
+              style={styles.refreshButton}
+              disabled={refreshing}
+            >
+              <Text style={styles.refreshButtonText}>
+                {refreshing ? '⏳' : '🔄'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.balanceAmount}>${(balance / 100).toFixed(2)}</Text>
+          <Text style={styles.balanceSubtext}>Available for services and plans</Text>
+        </View>
+
+        {/* Current Plan Card */}
+        {currentPlan && (
+          <View style={styles.planCard}>
+            <View style={styles.planHeader}>
+              <Text style={styles.planTitle}>Current Plan</Text>
+              <View style={styles.planStatus}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>Active</Text>
+              </View>
+            </View>
+            <Text style={styles.planName}>{currentPlan.planName}</Text>
+            <View style={styles.planFeatures}>
+              <View style={styles.planFeature}>
+                <Text style={styles.featureIcon}>📱</Text>
+                <Text style={styles.featureText}>
+                  {currentPlan.planDataMb >= 1024 
+                    ? `${(currentPlan.planDataMb / 1024).toFixed(1)} GB` 
+                    : `${currentPlan.planDataMb} MB`
+                  }
+                </Text>
+              </View>
+              <View style={styles.planFeature}>
+                <Text style={styles.featureIcon}>📞</Text>
+                <Text style={styles.featureText}>{currentPlan.planMinutes} min</Text>
+              </View>
+              <View style={styles.planFeature}>
+                <Text style={styles.featureIcon}>💬</Text>
+                <Text style={styles.featureText}>{currentPlan.planSms} SMS</Text>
+              </View>
+            </View>
+            <View style={styles.planPriceContainer}>
+              <Text style={styles.planPrice}>${parseFloat(currentPlan.planPrice).toFixed(2)}</Text>
+              <Text style={styles.planPeriod}>/month</Text>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -263,11 +288,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
     marginBottom: 4,
+    textTransform: 'lowercase',
   },
   userEmail: {
     fontSize: 14,
     color: '#64748B',
     fontWeight: '500',
+    textTransform: 'lowercase',
   },
   logoutButton: {
     backgroundColor: '#FEF2F2',
@@ -458,6 +485,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 24,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

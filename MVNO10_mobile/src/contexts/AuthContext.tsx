@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi, setToken, userApi } from '../services/api';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import type { AuthUser } from '../types/api';
 
 type AuthContextValue = {
@@ -61,10 +62,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const reloadProfile = async () => {
-    const dash = await userApi.getDashboard();
-    setUser(dash.user);
-  };
+  const reloadProfile = useCallback(async () => {
+    try {
+      const dash = await userApi.getDashboard();
+      setUser(dash.user);
+    } catch (error) {
+      console.error('Failed to reload profile:', error);
+    }
+  }, []);
+
+  // Используем хук для автоматического обновления данных
+  useAutoRefresh({
+    enabled: !!user,
+    interval: 30000, // 30 секунд
+    onRefresh: reloadProfile
+  });
 
   const value = useMemo(() => ({ user, isLoading, login, register, logout, reloadProfile }), [user, isLoading]);
 

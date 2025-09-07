@@ -16,6 +16,10 @@ export default function TabBarIcon({ name, color, size }: TabBarIconProps) {
         return '📱';
       case 'contacts':
         return '👥';
+      case 'recent':
+        return '📞';
+      case 'messages':
+        return '💬';
       default:
         return '📱';
     }

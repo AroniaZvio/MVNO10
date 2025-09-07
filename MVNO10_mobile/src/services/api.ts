@@ -6,7 +6,11 @@ import { API_CONFIG, getApiUrl } from '../config/api';
 export const api = axios.create({
   baseURL: `${API_CONFIG.BASE_URL}/api`,
   timeout: API_CONFIG.TIMEOUT,
-  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json', 
+    'Accept': 'application/json',
+    'User-Agent': 'MVNO10-Mobile/1.0.0'
+  },
 });
 
 // Add request interceptor for better error handling
@@ -28,6 +32,16 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    console.error('❌ API Error Details:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      data: error.response?.data,
+      baseURL: API_CONFIG.BASE_URL
+    });
+    
     if (error.code === 'ECONNABORTED') {
       console.error('⏰ API Timeout Error');
       error.message = 'Request timeout. Please check your connection.';
@@ -91,19 +105,19 @@ export const userApi = {
 export const planApi = {
   // Get all available plans
   getPlans: async () => {
-    const { data } = await api.get('/plans');
+    const { data } = await api.get(API_CONFIG.ENDPOINTS.PLANS.GET_PLANS);
     return data;
   },
   
   // Get user's connected plan
   getUserPlan: async () => {
-    const { data } = await api.get('/users/me/plan');
+    const { data } = await api.get(API_CONFIG.ENDPOINTS.PLANS.GET_USER_PLAN);
     return data;
   },
   
   // Connect a plan to user
   connectPlan: async (planId: number) => {
-    const { data } = await api.post('/users/me/plan', { planId });
+    const { data } = await api.post(API_CONFIG.ENDPOINTS.PLANS.CONNECT_PLAN, { planId });
     return data;
   }
 };

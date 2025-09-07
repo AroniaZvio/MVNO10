@@ -1,13 +1,16 @@
-// API Configuration
-// Change this to your computer's local IP address
-// You can find it by running 'ipconfig' on Windows or 'ifconfig' on Mac/Linux
+// API Configuration for Render Backend
+import Constants from 'expo-constants';
+
+// Get API base URL from app config or fallback to Render URL
+const getApiBaseUrl = () => {
+  const config = Constants.expoConfig?.extra as any;
+  return config?.apiBaseUrl || 'https://api.mobilive.ge';
+};
 
 export const API_CONFIG = {
-  // For physical device: use your computer's local IP (e.g., 192.168.0.83)
-  // For emulator: localhost should work
-  // For Expo Go: use your computer's local IP
-  BASE_URL: 'http://192.168.0.83:4000',
-  TIMEOUT: 15000,
+  // Render Backend API
+  BASE_URL: getApiBaseUrl(),
+  TIMEOUT: 20000, // Increased timeout for production
   ENDPOINTS: {
     AUTH: {
       LOGIN: '/auth/login',
@@ -17,6 +20,11 @@ export const API_CONFIG = {
     USER: {
       PROFILE: '/users/me',
       DASHBOARD: '/users/me/dashboard',
+    },
+    PLANS: {
+      GET_PLANS: '/plans',
+      GET_USER_PLAN: '/users/me/plan',
+      CONNECT_PLAN: '/users/me/plan',
     },
   },
 };

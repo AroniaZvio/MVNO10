@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Dimensions } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { userApi } from '../services/api';
+import type { DashboardResponse, PhoneNumber } from '../types/api';
 
 const { width } = Dimensions.get('window');
 
@@ -11,6 +13,8 @@ export default function DialpadScreen() {
   const [userBalance, setUserBalance] = useState(0);
   const [userNumber, setUserNumber] = useState('');
   const [isCalling, setIsCalling] = useState(false);
+  const [connectedNumbers, setConnectedNumbers] = useState<PhoneNumber[]>([]);
+  const [selectedNumber, setSelectedNumber] = useState<PhoneNumber | null>(null);
 
   // Load user data when screen comes into focus
   useFocusEffect(
@@ -19,14 +23,33 @@ export default function DialpadScreen() {
     }, [])
   );
 
+  // Обновляем данные при изменении пользователя (из AuthContext)
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    }
+  }, [user]);
+
   const loadUserData = async () => {
     try {
-      // In a real app, this would fetch from API
-      // For now, using mock data
-      setUserBalance(12.50);
-      setUserNumber('+995 555 123 456');
+      const dashboardData = await userApi.getDashboard();
+      setUserBalance(dashboardData.user?.balance || 0);
+      
+      const numbers = dashboardData.connectedNumbers || [];
+      setConnectedNumbers(numbers);
+      
+      // Set the first connected number as selected, or fallback to mock data
+      if (numbers.length > 0) {
+        setSelectedNumber(numbers[0]);
+        setUserNumber(numbers[0].mobileNumber || numbers[0].number800 || '');
+      } else {
+        setUserNumber('No number');
+      }
     } catch (error) {
       console.error('Failed to load user data:', error);
+      // Fallback to mock data on error
+      setUserBalance(1250); // $12.50 in cents
+      setUserNumber('+995 555 123 456');
     }
   };
 
@@ -92,7 +115,12 @@ export default function DialpadScreen() {
   };
 
   const formatBalance = (balance: number) => {
-    return `${balance.toFixed(2)} ₾`;
+    return `$${(balance / 100).toFixed(2)}`;
+  };
+
+  const selectNumber = (number: PhoneNumber) => {
+    setSelectedNumber(number);
+    setUserNumber(number.mobileNumber || number.number800 || '');
   };
 
   const renderDialpadButton = (digit: string, letters?: string) => (
@@ -122,7 +150,27 @@ export default function DialpadScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.userInfo}>
-            <Text style={styles.userNumber}>{userNumber}</Text>
+            <TouchableOpacity 
+              style={styles.numberSelector}
+              onPress={() => {
+                if (connectedNumbers.length > 1) {
+                  // Show number selection modal or navigate to number selection
+                  Alert.alert(
+                    'Select Number',
+                    'Choose which number to use for calls',
+                    connectedNumbers.map((number, index) => ({
+                      text: number.mobileNumber || number.number800 || `Number ${index + 1}`,
+                      onPress: () => selectNumber(number)
+                    }))
+                  );
+                }
+              }}
+            >
+              <Text style={styles.userNumber}>{userNumber}</Text>
+              {connectedNumbers.length > 1 && (
+                <Text style={styles.selectorIcon}>▼</Text>
+              )}
+            </TouchableOpacity>
           </View>
           <View style={styles.balanceInfo}>
             <Text style={styles.balanceAmount}>{formatBalance(userBalance)}</Text>
@@ -130,11 +178,7 @@ export default function DialpadScreen() {
         </View>
       </View>
 
-      <ScrollView 
-        style={styles.scrollContainer} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <View style={styles.contentContainer}>
         {/* Dialed Number Display */}
         <View style={styles.numberDisplay}>
           <Text style={[
@@ -226,53 +270,7 @@ export default function DialpadScreen() {
             <Text style={styles.actionButtonText}>Delete</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Text style={styles.quickActionIcon}>📞</Text>
-            <Text style={styles.quickActionText}>Recent</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Text style={styles.quickActionIcon}>👥</Text>
-            <Text style={styles.quickActionText}>Contacts</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Text style={styles.quickActionIcon}>⭐</Text>
-            <Text style={styles.quickActionText}>Favorites</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Call History Preview */}
-        <View style={styles.callHistoryPreview}>
-          <View style={styles.callHistoryHeader}>
-            <Text style={styles.callHistoryTitle}>Recent Calls</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.callHistoryItem}>
-            <View style={styles.callHistoryInfo}>
-              <Text style={styles.callHistoryNumber}>+995 555 789 012</Text>
-              <Text style={styles.callHistoryTime}>2 min ago</Text>
-            </View>
-            <TouchableOpacity style={styles.callAgainButton}>
-              <Text style={styles.callAgainText}>📞</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.callHistoryItem}>
-            <View style={styles.callHistoryInfo}>
-              <Text style={styles.callHistoryNumber}>+995 555 456 789</Text>
-              <Text style={styles.callHistoryTime}>1 hour ago</Text>
-            </View>
-            <TouchableOpacity style={styles.callAgainButton}>
-              <Text style={styles.callAgainText}>📞</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -298,10 +296,19 @@ const styles = StyleSheet.create({
   userInfo: {
     alignItems: 'flex-start',
   },
+  numberSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   userNumber: {
     fontSize: 14,
     fontWeight: '700',
     color: '#1E293B',
+  },
+  selectorIcon: {
+    fontSize: 12,
+    color: '#64748B',
+    marginLeft: 8,
   },
   balanceInfo: {
     alignItems: 'flex-end',
@@ -311,10 +318,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0EA5E9',
   },
-  scrollContainer: {
+  contentContainer: {
     flex: 1,
-  },
-  scrollContent: {
     paddingHorizontal: 22,
     paddingTop: 0,
     paddingBottom: 36,
@@ -364,7 +369,7 @@ const styles = StyleSheet.create({
   dialpadContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
-    padding: 22,
+    padding: 16,
     marginBottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -375,7 +380,7 @@ const styles = StyleSheet.create({
   dialpadRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   dialpadButton: {
     width: 72,
@@ -440,6 +445,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   videoCallButton: {
+    backgroundColor: 'transparent',
     borderColor: '#10B981',
   },
   actionButtonIcon: {
@@ -476,88 +482,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   deleteButton: {
+    backgroundColor: 'transparent',
     borderColor: '#EF4444',
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  quickActionButton: {
-    alignItems: 'center',
-  },
-  quickActionIcon: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  callHistoryPreview: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  callHistoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  callHistoryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0EA5E9',
-  },
-  callHistoryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  callHistoryInfo: {
-    flex: 1,
-  },
-  callHistoryNumber: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 4,
-  },
-  callHistoryTime: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  callAgainButton: {
-    padding: 12,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  callAgainText: {
-    fontSize: 20,
   },
 });
