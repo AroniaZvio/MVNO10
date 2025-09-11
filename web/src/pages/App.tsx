@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import AvailableNumbersTable from '../components/numbers/AvailableNumbersTable';
+import MainPageNumbersDisplay from '../components/numbers/MainPageNumbersDisplay';
 
 import SmartTariffButton from '../components/SmartTariffButton';
 
@@ -47,8 +47,8 @@ export default function App() {
 
               {/* Выпадающее меню Услуги - 2 колонки */}
               <div className={`absolute top-full left-0 mt-2 w-[500px] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-200 ${isServicesDropdownOpen
-                  ? 'opacity-100 visible translate-y-0'
-                  : 'opacity-0 invisible -translate-y-2'
+                ? 'opacity-100 visible translate-y-0'
+                : 'opacity-0 invisible -translate-y-2'
                 }`}>
                 <div className="grid grid-cols-2 gap-0">
                   {/* Колонка 1 - Основные услуги */}
@@ -167,8 +167,8 @@ export default function App() {
 
               {/* Выпадающее меню Тарифы */}
               <div className={`absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-200 ${isTariffsDropdownOpen
-                  ? 'opacity-100 visible translate-y-0'
-                  : 'opacity-0 invisible -translate-y-2'
+                ? 'opacity-100 visible translate-y-0'
+                : 'opacity-0 invisible -translate-y-2'
                 }`}>
                 <div className="py-2">
                   <Link
@@ -254,8 +254,8 @@ export default function App() {
 
               {/* Выпадающее меню Для кого */}
               <div className={`absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-200 ${isForWhoDropdownOpen
-                  ? 'opacity-100 visible translate-y-0'
-                  : 'opacity-0 invisible -translate-y-2'
+                ? 'opacity-100 visible translate-y-0'
+                : 'opacity-0 invisible -translate-y-2'
                 }`}>
                 <div className="py-2">
                   <Link
@@ -366,7 +366,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3">
             <h3 className="text-lg font-semibold mb-2">Available Numbers</h3>
-            <AvailableNumbersTable />
+            <MainPageNumbersDisplay />
           </div>
         </div>
       </div>

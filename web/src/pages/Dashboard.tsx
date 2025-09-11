@@ -359,8 +359,8 @@ const Dashboard: React.FC = () => {
                     <div
                       key={n.id}
                       className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${n.isActive
-                          ? 'bg-green-50 border-green-300 shadow-sm'
-                          : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                        ? 'bg-green-50 border-green-300 shadow-sm'
+                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                         }`}
                       onClick={() => handleNumberActivation(n.id)}
                     >
@@ -383,8 +383,8 @@ const Dashboard: React.FC = () => {
                         )}
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${n.isActive
-                              ? 'border-green-500 bg-green-500'
-                              : 'border-slate-300 bg-white'
+                            ? 'border-green-500 bg-green-500'
+                            : 'border-slate-300 bg-white'
                             }`}
                         >
                           {n.isActive && (
