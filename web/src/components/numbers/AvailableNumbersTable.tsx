@@ -3,11 +3,13 @@ import { useAvailableNumbers, type AvailableNumber } from '../../hooks/useAvaila
 
 type Props = {
   onConnect?: (row: AvailableNumber) => void;
+  onRowClick?: (row: AvailableNumber) => void;
   className?: string;
 };
 
 export default function AvailableNumbersTable({
   onConnect,
+  onRowClick,
   className = ''
 }: Props) {
   const { data, loading, error, reload } = useAvailableNumbers();
@@ -114,8 +116,8 @@ export default function AvailableNumbersTable({
             <button
               onClick={() => setFilterView('all')}
               className={`px-4 py-2 text-sm font-medium transition-all duration-200 ${filterView === 'all'
-                  ? 'bg-[#0A7B75] text-white shadow-md'
-                  : 'bg-white text-[#0A7B75] hover:bg-[#0A7B75]/10'
+                ? 'bg-[#0A7B75] text-white shadow-md'
+                : 'bg-white text-[#0A7B75] hover:bg-[#0A7B75]/10'
                 }`}
             >
               Все
@@ -123,8 +125,8 @@ export default function AvailableNumbersTable({
             <button
               onClick={() => setFilterView('mobile')}
               className={`px-4 py-2 text-sm font-medium transition-all duration-200 ${filterView === 'mobile'
-                  ? 'bg-[#0A7B75] text-white shadow-md'
-                  : 'bg-white text-[#0A7B75] hover:bg-[#0A7B75]/10'
+                ? 'bg-[#0A7B75] text-white shadow-md'
+                : 'bg-white text-[#0A7B75] hover:bg-[#0A7B75]/10'
                 }`}
             >
               📱 Мобильные
@@ -132,8 +134,8 @@ export default function AvailableNumbersTable({
             <button
               onClick={() => setFilterView('tf')}
               className={`px-4 py-2 text-sm font-medium transition-all duration-200 ${filterView === 'tf'
-                  ? 'bg-[#0A7B75] text-white shadow-md'
-                  : 'bg-white text-[#0A7B75] hover:bg-[#0A7B75]/10'
+                ? 'bg-[#0A7B75] text-white shadow-md'
+                : 'bg-white text-[#0A7B75] hover:bg-[#0A7B75]/10'
                 }`}
             >
               ☎️ Номера 800
@@ -217,7 +219,11 @@ export default function AvailableNumbersTable({
                   </td>
                 </tr>
                 {mobileRows.map((row, index) => (
-                  <tr key={`mob-${row.id}`} className={`hover:bg-gradient-to-r hover:from-[#0A7B75]/5 hover:to-transparent group transition-all duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-[#0A7B75]/2'}`}>
+                  <tr
+                    key={`mob-${row.id}`}
+                    className={`hover:bg-gradient-to-r hover:from-[#0A7B75]/5 hover:to-transparent group transition-all duration-200 cursor-pointer ${index % 2 === 0 ? 'bg-white' : 'bg-[#0A7B75]/2'}`}
+                    onClick={() => onRowClick?.(row)}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <div className="w-8 h-8 bg-gradient-to-br from-[#0A7B75] to-[#0A7B75]/80 rounded-full flex items-center justify-center text-white text-xs font-bold">
@@ -278,8 +284,11 @@ export default function AvailableNumbersTable({
                     {onConnect && (
                       <td className="px-6 py-4 text-sm font-medium">
                         <button
-                          onClick={() => onConnect(row)}
-                          className="px-4 py-2 bg-gradient-to-r from-[#0A7B75] to-[#0A7B75]/90 text-white rounded-xl hover:from-[#0A7B75]/90 hover:to-[#0A7B75] transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 opacity-0 group-hover:opacity-100 text-sm font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Предотвращаем клик по строке
+                            onConnect(row);
+                          }}
+                          className="px-4 py-2 bg-gradient-to-r from-[#0A7B75] to-[#0A7B75]/90 text-white rounded-xl hover:from-[#0A7B75]/90 hover:to-[#0A7B75] transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm font-medium"
                         >
                           ⚡ Подключить
                         </button>
@@ -299,7 +308,11 @@ export default function AvailableNumbersTable({
                   </td>
                 </tr>
                 {tfRows.map((row, index) => (
-                  <tr key={`tf-${row.id}`} className={`hover:bg-gradient-to-r hover:from-[#0A7B75]/5 hover:to-transparent group transition-all duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-[#0A7B75]/2'}`}>
+                  <tr
+                    key={`tf-${row.id}`}
+                    className={`hover:bg-gradient-to-r hover:from-[#0A7B75]/5 hover:to-transparent group transition-all duration-200 cursor-pointer ${index % 2 === 0 ? 'bg-white' : 'bg-[#0A7B75]/2'}`}
+                    onClick={() => onRowClick?.(row)}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <div className="w-8 h-8 bg-gradient-to-br from-[#0A7B75] to-[#0A7B75]/80 rounded-full flex items-center justify-center text-white text-xs font-bold">
@@ -360,8 +373,11 @@ export default function AvailableNumbersTable({
                     {onConnect && (
                       <td className="px-6 py-4 text-sm font-medium">
                         <button
-                          onClick={() => onConnect(row)}
-                          className="px-4 py-2 bg-gradient-to-r from-[#0A7B75] to-[#0A7B75]/90 text-white rounded-xl hover:from-[#0A7B75]/90 hover:to-[#0A7B75] transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 opacity-0 group-hover:opacity-100 text-sm font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Предотвращаем клик по строке
+                            onConnect(row);
+                          }}
+                          className="px-4 py-2 bg-gradient-to-r from-[#0A7B75] to-[#0A7B75]/90 text-white rounded-xl hover:from-[#0A7B75]/90 hover:to-[#0A7B75] transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm font-medium"
                         >
                           ⚡ Подключить
                         </button>
