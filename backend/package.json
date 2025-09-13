@@ -24,7 +24,9 @@
     "seed": "ts-node-dev src/seed.ts",
     "seed:admin": "ts-node-dev src/scripts/seedAdmin.ts",
     "db:reset": "prisma migrate reset --force",
-    "db:setup": "prisma migrate dev && npm run seed"
+    "db:setup": "prisma migrate dev && npm run seed",
+    "test:db": "node scripts/testConnection.js",
+    "test:db:render": "set NODE_ENV=render && node scripts/testConnection.js"
   },
   "engines": {
     "node": "20.x"
@@ -42,14 +44,14 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@prisma/client": "^6.15.0",
+    "@prisma/client": "^6.16.1",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.2.1",
     "@types/nodemailer": "^7.0.1",
-    "prisma": "^6.15.0",
+    "prisma": "^6.16.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.2"
   }

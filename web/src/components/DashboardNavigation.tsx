@@ -14,24 +14,6 @@ const navItems: NavItem[] = [
     label: 'Overview',
     icon: '📊',
     description: 'Main dashboard page'
-  },
-  {
-    path: '/dashboard/profile',
-    label: 'Profile',
-    icon: '👤',
-    description: 'Personal data and balance'
-  },
-  {
-    path: '/dashboard/connected-numbers',
-    label: 'My Numbers',
-    icon: '📱',
-    description: 'Connected numbers'
-  },
-  {
-    path: '/dashboard/available-numbers',
-    label: 'Available Numbers',
-    icon: '🔍',
-    description: 'Search and connect numbers'
   }
 ];
 
@@ -40,8 +22,6 @@ const DashboardNavigation: React.FC = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-      <h2 className="text-xl font-bold mb-6 text-slate-900">Navigation</h2>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;

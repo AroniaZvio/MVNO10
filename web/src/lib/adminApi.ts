@@ -7,6 +7,9 @@ export const adminApi = {
   setUserStatus(id: number, isActive: boolean) {
     return api.put(`/admin/users/${id}/status`, { isActive });
   },
+  deleteUser(id: number) {
+    return api.delete(`/admin/users/${id}`);
+  },
   getTransactions() {
     return api.get("/admin/transactions");
   },

@@ -33,21 +33,31 @@ Write-Host "✅ render.yaml found" -ForegroundColor Green
 # Instructions for Render deployment
 Write-Host ""
 Write-Host "📋 Render Deployment Steps:" -ForegroundColor Cyan
-Write-Host "1. Make sure your code is pushed to Git repository" -ForegroundColor White
-Write-Host "2. Connect your repository to Render" -ForegroundColor White
-Write-Host "3. Set environment variables in Render dashboard:" -ForegroundColor White
-Write-Host "   - NODE_ENV=render" -ForegroundColor White
-Write-Host "   - DATABASE_URL=your-render-postgres-url" -ForegroundColor White
-Write-Host "   - JWT_SECRET=your-jwt-secret" -ForegroundColor White
-Write-Host "   - SMTP_HOST=smtp.gmail.com" -ForegroundColor White
-Write-Host "   - SMTP_PORT=587" -ForegroundColor White
-Write-Host "   - SMTP_USER=your-email" -ForegroundColor White
-Write-Host "   - SMTP_PASS=your-app-password" -ForegroundColor White
-Write-Host "   - SMTP_FROM=noreply@yourdomain.com" -ForegroundColor White
-Write-Host "   - CORS_ORIGIN=https://your-app.onrender.com" -ForegroundColor White
-Write-Host "4. Set build command: npm run build:render" -ForegroundColor White
-Write-Host "5. Set start command: npm run start:render" -ForegroundColor White
-Write-Host "6. Deploy!" -ForegroundColor White
+Write-Host "1. Create PostgreSQL database in Render dashboard" -ForegroundColor White
+Write-Host "   - Go to https://dashboard.render.com" -ForegroundColor Gray
+Write-Host "   - Click 'New +' → 'PostgreSQL'" -ForegroundColor Gray
+Write-Host "   - Name: mobilive-db" -ForegroundColor Gray
+Write-Host "   - Database: mvno_db" -ForegroundColor Gray
+Write-Host "   - User: mvno_user" -ForegroundColor Gray
+Write-Host ""
+Write-Host "2. Get database connection string:" -ForegroundColor White
+Write-Host "   - Copy 'External Database URL' from database info" -ForegroundColor Gray
+Write-Host "   - Update backend/env.render with your DATABASE_URL" -ForegroundColor Gray
+Write-Host ""
+Write-Host "3. Push code to Git repository" -ForegroundColor White
+Write-Host "4. Connect repository to Render (render.yaml will be auto-detected)" -ForegroundColor White
+Write-Host "5. Environment variables are configured in render.yaml:" -ForegroundColor White
+Write-Host "   - DATABASE_URL: Auto-generated from database service" -ForegroundColor Gray
+Write-Host "   - JWT_SECRET: Auto-generated" -ForegroundColor Gray
+Write-Host "   - SMTP_*: Update with your email settings" -ForegroundColor Gray
+Write-Host "   - CORS_ORIGIN: Update with your app URL" -ForegroundColor Gray
+Write-Host ""
+Write-Host "6. Deploy! Render will automatically:" -ForegroundColor White
+Write-Host "   - Install dependencies" -ForegroundColor Gray
+Write-Host "   - Build the application" -ForegroundColor Gray
+Write-Host "   - Generate Prisma client" -ForegroundColor Gray
+Write-Host "   - Run database migrations" -ForegroundColor Gray
+Write-Host "   - Start the application" -ForegroundColor Gray
 
 Write-Host ""
 Write-Host "🎯 Your app will be automatically deployed when you push to Git!" -ForegroundColor Green

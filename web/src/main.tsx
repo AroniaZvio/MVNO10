@@ -19,6 +19,7 @@ import Profile from './pages/Profile';
 import TopUp from './pages/TopUp';
 import AddNumber from './pages/AddNumber';
 import AtsServices from './pages/AtsServices';
+import VirtualPbx from './pages/VirtualPbx';
 
 // Dashboard страницы
 import DashboardProfile from './pages/dashboard/Profile';
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
   { path: "/add-number", element: <RequireAuth><AddNumber /></RequireAuth> },
   { path: "/connect-number", element: <RequireAuth><ConnectNumber /></RequireAuth> },
   { path: "/ats-services", element: <RequireAuth><AtsServices /></RequireAuth> },
+  { path: "/virtual-pbx", element: <RequireAuth><VirtualPbx /></RequireAuth> },
 
   // Dashboard страницы
   { path: "/dashboard/profile", element: <RequireAuth><DashboardProfile /></RequireAuth> },

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { userApi, billingApi } from '../../lib/api';
 import DashboardNavigation from '../../components/DashboardNavigation';
+import AvailableNumbersTable from '../../components/numbers/AvailableNumbersTable';
+import { type AvailableNumber } from '../../hooks/useAvailableNumbers';
 
 interface ConnectedNumber {
   id: number;
@@ -14,9 +17,29 @@ interface ConnectedNumber {
 }
 
 const ConnectedNumbers: React.FC = () => {
+  const navigate = useNavigate();
   const [connectedNumbers, setConnectedNumbers] = useState<ConnectedNumber[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Функции для обработки подключения номеров
+  const handleConnect = (row: AvailableNumber) => {
+    navigate('/connect-number', {
+      state: {
+        id: row.id,
+        mobileNumber: row.mobileNumber,
+        connectionFee: row.connectionFee,
+        monthlyFee: row.monthlyFee,
+        countryName: row.countryName,
+        countryCode: row.countryCode
+      }
+    });
+  };
+
+  const handleRowClick = (row: AvailableNumber) => {
+    // При клике по строке также переходим к подключению номера
+    handleConnect(row);
+  };
 
   // Загружаем подключенные номера
   const loadConnectedNumbers = async () => {
@@ -170,6 +193,35 @@ const ConnectedNumbers: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Доступные номера - таблица */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900 mb-2">Доступные номера</h2>
+              <p className="text-slate-600">Поиск и подключение новых номеров для вашего бизнеса</p>
+              <div className="mt-2 flex items-center gap-2 text-sm text-[#0A7B75]">
+                <span className="text-lg">💡</span>
+                <span>Нажмите на строку номера или кнопку "Подключить" для подключения</span>
+              </div>
+            </div>
+            <a
+              href="/dashboard/available-numbers"
+              className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Открыть полную таблицу
+            </a>
+          </div>
+
+          <AvailableNumbersTable
+            onConnect={handleConnect}
+            onRowClick={handleRowClick}
+            className="shadow-sm"
+          />
         </div>
       </div>
     </div>
